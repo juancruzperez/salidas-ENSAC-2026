@@ -62,6 +62,7 @@ function manejarPernocte() {
         seccionAlojamiento.style.display = 'block';
         inputsAlojamiento.forEach(input => input.required = true);
     }
+    // La fecha de regreso no puede ser anterior a la de salida en el calendario
     if(inputFechaSalida.value) {
         inputFechaRegreso.min = inputFechaSalida.value;
     }
@@ -74,6 +75,7 @@ inputFechaSalida.addEventListener('change', function() {
 manejarPernocte();
 
 btnSiguienteEstudiantes.addEventListener('click', function() {
+    // Validaciones cronológicas
     const fSalida = inputFechaSalida.value;
     const fRegreso = inputFechaRegreso.value;
     const hSalida = inputHoraSalida.value;
@@ -103,8 +105,134 @@ btnSiguienteEstudiantes.addEventListener('click', function() {
 });
 
 // ------------------------------------------------------------
-// LÓGICA DEL PASO 2: ESTUDIANTES
+// LÓGICA DEL PASO 2: ESTUDIANTES (Conectado a Vercel Postgres)
 // ------------------------------------------------------------
+let contadorCursos = 0;
+const contenedorSeccionesCursos = document.getElementById('contenedorSeccionesCursos');
+const checkAgregarOtroCurso = document.getElementById('checkAgregarOtroCurso');
+const textoContadorEstudiantes = document.getElementById('textoContadorEstudiantes');
+const btnSiguienteDocentes = document.getElementById('btnSiguienteDocentes');
+
+function validarEstudiantes() {
+    const declarados = parseInt(cantEstudiantes.value) || 0;
+    const seleccionados = document.querySelectorAll('.check-estudiante:checked').length;
+
+    textoContadorEstudiantes.textContent = `${seleccionados} / ${declarados}`;
+
+    if (declarados > 0 && seleccionados === declarados) {
+        textoContadorEstudiantes.classList.remove('text-danger');
+        textoContadorEstudiantes.classList.add('text-success'); 
+        btnSiguienteDocentes.removeAttribute('disabled'); 
+    } else {
+        textoContadorEstudiantes.classList.remove('text-success');
+        textoContadorEstudiantes.classList.add('text-danger'); 
+        btnSiguienteDocentes.setAttribute('disabled', 'true'); 
+    }
+}
+
+btnSiguienteDocentes.addEventListener('click', function() {
+    seccion3.classList.remove('d-none');
+    seccion3.scrollIntoView();
+    generarCamposDocentes();
+});
+
+function agregarSeccionCurso() {
+    contadorCursos++;
+    const idCurso = contadorCursos;
+
+    const htmlSeccion = `
+        <div class="card mb-4 border shadow-sm" id="cursoCard_${idCurso}">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">Búsqueda de Curso #${idCurso}</h6>
+                ${idCurso > 1 ? `<button type="button" class="btn btn-sm btn-outline-light" onclick="eliminarSeccionCurso(${idCurso})">🗑️ Eliminar</button>` : ''}
+            </div>
+            <div class="card-body bg-white">
+                <div class="row mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Turno</label>
+                        <select class="form-select" id="filtroTurno_${idCurso}">
+                            <option value="TODOS">Todos</option>
+                            <option value="MAÑANA">MAÑANA</option>
+                            <option value="TARDE">TARDE</option>
+                            <option value="VESPERTINO">VESPERTINO</option>
+                            <option value="NOCHE">NOCHE</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Año</label>
+                        <select class="form-select" id="filtroAno_${idCurso}">
+                            <option value="TODOS">Todos</option>
+                            <option value="PRIMER AÑO">PRIMER AÑO</option>
+                            <option value="SEGUNDO AÑO">SEGUNDO AÑO</option>
+                            <option value="TERCER AÑO">TERCER AÑO</option>
+                            <option value="CUARTO AÑO">CUARTO AÑO</option>
+                            <option value="QUINTO AÑO">QUINTO AÑO</option>
+                            <option value="SEXTO AÑO">SEXTO AÑO</option>
+                            <option value="SEPTIMO AÑO">SEPTIMO AÑO</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">División</label>
+                        <select class="form-select" id="filtroDivision_${idCurso}">
+                            <option value="TODOS">Todas</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Ciclo / Esp.</label>
+                        <select class="form-select" id="filtroCiclo_${idCurso}">
+                            <option value="TODOS">Todos</option>
+                            <option value="CICLO BASICO">CICLO BASICO</option>
+                            <option value="CIENCIAS SOCIALES">CIENCIAS SOCIALES</option>
+                            <option value="CIENCIAS NATURALES">CIENCIAS NATURALES</option>
+                            <option value="ECONOMIA Y ADMINISTRACION">ECONOMIA Y ADMINISTRACION</option>
+                            <option value="LENGUAS">LENGUAS</option>
+                            <option value="INFORMATICA">INFORMATICA</option>
+                            <option value="ARTE">ARTE</option>
+                            <option value="EDUCACION FISICA">EDUCACION FISICA</option>
+                            <option value="TURISMO">TURISMO</option>
+                        </select>
+                    </div>
+                    <div class="col-12 text-center mt-2">
+                        <button type="button" class="btn btn-outline-success px-4" onclick="buscarAlumnosPorCurso(${idCurso})">
+                            🔍 Buscar Estudiantes
+                        </button>
+                    </div>
+                </div>
+
+                <div id="contenedorTabla_${idCurso}" class="d-none mt-3">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-1">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="text-center" style="width: 50px;">Viaja</th>
+                                    <th scope="col">Apellido y Nombre</th>
+                                    <th scope="col">DNI</th>
+                                    <th scope="col" style="width: 130px;">G. Sanguíneo</th>
+                                    <th scope="col" style="width: 100px;">Factor RH</th>
+                                    <th scope="col" style="width: 160px;">Fecha Nac.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoTabla_${idCurso}"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="mensajeSinResultados_${idCurso}" class="alert alert-warning d-none text-center mt-3" role="alert">
+                    No se encontraron estudiantes para los criterios seleccionados.
+                </div>
+            </div>
+        </div>
+    `;
+    contenedorSeccionesCursos.insertAdjacentHTML('beforeend', htmlSeccion);
+}
+
+// Función asíncrona para consultar la API de Vercel
 async function buscarAlumnosPorCurso(idCurso) {
     const turno = document.getElementById(`filtroTurno_${idCurso}`).value;
     const ano = document.getElementById(`filtroAno_${idCurso}`).value;
@@ -115,6 +243,7 @@ async function buscarAlumnosPorCurso(idCurso) {
     const contenedorTabla = document.getElementById(`contenedorTabla_${idCurso}`);
     const mensajeSinResultados = document.getElementById(`mensajeSinResultados_${idCurso}`);
 
+    // Mostrar mensaje de carga
     cuerpoTabla.innerHTML = '<tr><td colspan="6" class="text-center">Buscando en la base de datos...</td></tr>';
     contenedorTabla.classList.remove('d-none');
     mensajeSinResultados.classList.add('d-none');
@@ -122,6 +251,11 @@ async function buscarAlumnosPorCurso(idCurso) {
     try {
         // Consultamos a nuestra API en Vercel pasando los filtros seleccionados
         const respuesta = await fetch(`/api/estudiantes?turno=${encodeURIComponent(turno)}&ano=${encodeURIComponent(ano)}&division=${encodeURIComponent(division)}&ciclo=${encodeURIComponent(ciclo)}`);
+        
+        if (!respuesta.ok) {
+            throw new Error(`Error del servidor: ${respuesta.status}`);
+        }
+
         const alumnosFiltrados = await respuesta.json();
 
         cuerpoTabla.innerHTML = '';
@@ -177,185 +311,6 @@ async function buscarAlumnosPorCurso(idCurso) {
     validarEstudiantes();
 }
 
-let contadorCursos = 0;
-const contenedorSeccionesCursos = document.getElementById('contenedorSeccionesCursos');
-const checkAgregarOtroCurso = document.getElementById('checkAgregarOtroCurso');
-const textoContadorEstudiantes = document.getElementById('textoContadorEstudiantes');
-const btnSiguienteDocentes = document.getElementById('btnSiguienteDocentes');
-
-function validarEstudiantes() {
-    const declarados = parseInt(cantEstudiantes.value) || 0;
-    const seleccionados = document.querySelectorAll('.check-estudiante:checked').length;
-
-    textoContadorEstudiantes.textContent = `${seleccionados} / ${declarados}`;
-
-    if (declarados > 0 && seleccionados === declarados) {
-        textoContadorEstudiantes.classList.remove('text-danger');
-        textoContadorEstudiantes.classList.add('text-success'); 
-        btnSiguienteDocentes.removeAttribute('disabled'); 
-    } else {
-        textoContadorEstudiantes.classList.remove('text-success');
-        textoContadorEstudiantes.classList.add('text-danger'); 
-        btnSiguienteDocentes.setAttribute('disabled', 'true'); 
-    }
-}
-
-btnSiguienteDocentes.addEventListener('click', function() {
-    seccion3.classList.remove('d-none');
-    seccion3.scrollIntoView();
-    generarCamposDocentes();
-});
-
-function agregarSeccionCurso() {
-    contadorCursos++;
-    const idCurso = contadorCursos;
-
-    const htmlSeccion = `
-        <div class="card mb-4 border shadow-sm" id="cursoCard_${idCurso}">
-            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold">Búsqueda de Curso #${idCurso}</h6>
-                ${idCurso > 1 ? `<button type="button" class="btn btn-sm btn-outline-light" onclick="eliminarSeccionCurso(${idCurso})">🗑️ Eliminar</button>` : ''}
-            </div>
-            <div class="card-body bg-white">
-                <div class="row mb-3">
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">Turno</label>
-                        <select class="form-select" id="filtroTurno_${idCurso}">
-                            <option value="TODOS">Todos</option>
-                            <option value="MAÑANA">MAÑANA</option>
-                            <option value="TARDE">TARDE</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">Año</label>
-                        <select class="form-select" id="filtroAno_${idCurso}">
-                            <option value="TODOS">Todos</option>
-                            <option value="PRIMER AÑO">PRIMER AÑO</option>
-                            <option value="SEGUNDO AÑO">SEGUNDO AÑO</option>
-                            <option value="TERCER AÑO">TERCER AÑO</option>
-                            <option value="CUARTO AÑO">CUARTO AÑO</option>
-                            <option value="QUINTO AÑO">QUINTO AÑO</option>
-                            <option value="SEXTO AÑO">SEXTO AÑO</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">División</label>
-                        <select class="form-select" id="filtroDivision_${idCurso}">
-                            <option value="TODOS">Todas</option>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">Ciclo / Esp.</label>
-                        <select class="form-select" id="filtroCiclo_${idCurso}">
-                            <option value="TODOS">Todos</option>
-                            <option value="CICLO BASICO">CICLO BASICO</option>
-                            <option value="LENGUAS">LENGUAS</option>
-                            <option value="INFORMATICA">INFORMATICA</option>
-                        </select>
-                    </div>
-                    <div class="col-12 text-center mt-2">
-                        <button type="button" class="btn btn-outline-success px-4" onclick="buscarAlumnosPorCurso(${idCurso})">
-                            🔍 Buscar Estudiantes
-                        </button>
-                    </div>
-                </div>
-
-                <div id="contenedorTabla_${idCurso}" class="d-none mt-3">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle mb-1">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col" class="text-center" style="width: 50px;">Viaja</th>
-                                    <th scope="col">Apellido y Nombre</th>
-                                    <th scope="col">DNI</th>
-                                    <th scope="col" style="width: 130px;">G. Sanguíneo</th>
-                                    <th scope="col" style="width: 100px;">Factor RH</th>
-                                    <th scope="col" style="width: 160px;">Fecha Nac.</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cuerpoTabla_${idCurso}"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div id="mensajeSinResultados_${idCurso}" class="alert alert-warning d-none text-center mt-3" role="alert">
-                    No se encontraron estudiantes para los criterios seleccionados.
-                </div>
-            </div>
-        </div>
-    `;
-    contenedorSeccionesCursos.insertAdjacentHTML('beforeend', htmlSeccion);
-}
-
-function buscarAlumnosPorCurso(idCurso) {
-    const turno = document.getElementById(`filtroTurno_${idCurso}`).value;
-    const ano = document.getElementById(`filtroAno_${idCurso}`).value;
-    const division = document.getElementById(`filtroDivision_${idCurso}`).value;
-    const ciclo = document.getElementById(`filtroCiclo_${idCurso}`).value;
-
-    const cuerpoTabla = document.getElementById(`cuerpoTabla_${idCurso}`);
-    const contenedorTabla = document.getElementById(`contenedorTabla_${idCurso}`);
-    const mensajeSinResultados = document.getElementById(`mensajeSinResultados_${idCurso}`);
-
-    const alumnosFiltrados = baseDatosAlumnos.filter(alumno => {
-        const coincideTurno = (turno === "TODOS") || (alumno.turno === turno);
-        const coincideAno = (ano === "TODOS") || (alumno.ano === ano);
-        const coincideDivision = (division === "TODOS") || (alumno.division === division);
-        const coincideCiclo = (ciclo === "TODOS") || (alumno.ciclo === ciclo);
-        return coincideTurno && coincideAno && coincideDivision && coincideCiclo;
-    });
-
-    cuerpoTabla.innerHTML = '';
-
-    if (alumnosFiltrados.length > 0) {
-        mensajeSinResultados.classList.add('d-none');
-        contenedorTabla.classList.remove('d-none');
-
-        alumnosFiltrados.forEach(alumno => {
-            const fila = `
-                <tr>
-                    <td class="text-center">
-                        <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.id}" onchange="validarEstudiantes()" checked>
-                    </td>
-                    <td>
-                        <strong>${alumno.nombre}</strong><br>
-                        <small class="text-muted">DNI: ${alumno.dni} | ${alumno.ano}° "${alumno.division}"</small>
-                    </td>
-                    <td>${alumno.dni}</td>
-                    <td>
-                        <select class="form-select form-select-sm">
-                            <option value="" ${!alumno.grupoSangre ? 'selected' : ''}>- Seleccionar -</option>
-                            <option value="A" ${alumno.grupoSangre === 'A' ? 'selected' : ''}>A</option>
-                            <option value="B" ${alumno.grupoSangre === 'B' ? 'selected' : ''}>B</option>
-                            <option value="AB" ${alumno.grupoSangre === 'AB' ? 'selected' : ''}>AB</option>
-                            <option value="O" ${alumno.grupoSangre === 'O' ? 'selected' : ''}>O</option>
-                        </select>
-                    </td>
-                    <td>
-                        <select class="form-select form-select-sm">
-                            <option value="" ${!alumno.factorRh ? 'selected' : ''}>-</option>
-                            <option value="+" ${alumno.factorRh === '+' ? 'selected' : ''}>+</option>
-                            <option value="-" ${alumno.factorRh === '-' ? 'selected' : ''}>-</option>
-                        </select>
-                    </td>
-                    <td>
-                        <input type="date" class="form-control form-control-sm" value="${alumno.fechaNac || ''}">
-                    </td>
-                </tr>
-            `;
-            cuerpoTabla.innerHTML += fila;
-        });
-    } else {
-        contenedorTabla.classList.add('d-none');
-        mensajeSinResultados.classList.remove('d-none');
-    }
-
-    validarEstudiantes();
-}
-
 function eliminarSeccionCurso(idCurso) {
     const card = document.getElementById(`cursoCard_${idCurso}`);
     if (card) {
@@ -371,6 +326,7 @@ checkAgregarOtroCurso.addEventListener('change', function() {
     }
 });
 
+// Inicializar la primera búsqueda
 agregarSeccionCurso();
 validarEstudiantes();
 
