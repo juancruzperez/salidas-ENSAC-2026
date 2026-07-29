@@ -1,10 +1,10 @@
-import { sql } from '@vercel/postgres';
+const { sql } = require('@vercel/postgres');
 
-export default async function handler(request, response) {
+module.exports = async function handler(request, response) {
   try {
     const { turno, ano, division, ciclo } = request.query;
     
-    // Construimos la consulta SQL de forma dinámica según los filtros que elija el docente
+    // Construimos la consulta SQL de forma dinámica
     let query = `SELECT * FROM estudiantes WHERE 1=1`;
     let params = [];
     let paramIndex = 1;
@@ -26,11 +26,13 @@ export default async function handler(request, response) {
       params.push(ciclo);
     }
 
-    // Ejecutamos la consulta en tu base de datos de Vercel Postgres
+    // Ejecutamos la consulta en Vercel Postgres
     const result = await sql.query(query, params);
     
     return response.status(200).json(result.rows);
   } catch (error) {
+    // Esto imprimirá el error real en los logs de Vercel
+    console.error("Error en la base de datos:", error);
     return response.status(500).json({ error: error.message });
   }
-}
+};
