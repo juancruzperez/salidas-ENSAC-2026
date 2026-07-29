@@ -105,11 +105,77 @@ btnSiguienteEstudiantes.addEventListener('click', function() {
 // ------------------------------------------------------------
 // LÓGICA DEL PASO 2: ESTUDIANTES
 // ------------------------------------------------------------
-const baseDatosAlumnos = [
-    { id: 1, nombre: "Acosta, Mateo", dni: "47.123.456", fechaNac: "2010-03-15", grupoSangre: "A", factorRh: "+", turno: "MAÑANA", ano: "PRIMER AÑO", division: "A", ciclo: "CICLO BASICO" },
-    { id: 2, nombre: "Benítez, Sofía", dni: "47.234.567", fechaNac: "2010-07-22", grupoSangre: "O", factorRh: "+", turno: "MAÑANA", ano: "PRIMER AÑO", division: "A", ciclo: "CICLO BASICO" },
-    { id: 3, nombre: "Díaz, Valentina", dni: "44.987.654", fechaNac: "2007-09-05", grupoSangre: "B", factorRh: "-", turno: "MAÑANA", ano: "SEXTO AÑO", division: "A", ciclo: "LENGUAS" }
-];
+async function buscarAlumnosPorCurso(idCurso) {
+    const turno = document.getElementById(`filtroTurno_${idCurso}`).value;
+    const ano = document.getElementById(`filtroAno_${idCurso}`).value;
+    const division = document.getElementById(`filtroDivision_${idCurso}`).value;
+    const ciclo = document.getElementById(`filtroCiclo_${idCurso}`).value;
+
+    const cuerpoTabla = document.getElementById(`cuerpoTabla_${idCurso}`);
+    const contenedorTabla = document.getElementById(`contenedorTabla_${idCurso}`);
+    const mensajeSinResultados = document.getElementById(`mensajeSinResultados_${idCurso}`);
+
+    cuerpoTabla.innerHTML = '<tr><td colspan="6" class="text-center">Buscando en la base de datos...</td></tr>';
+    contenedorTabla.classList.remove('d-none');
+    mensajeSinResultados.classList.add('d-none');
+
+    try {
+        // Consultamos a nuestra API en Vercel pasando los filtros seleccionados
+        const respuesta = await fetch(`/api/estudiantes?turno=${encodeURIComponent(turno)}&ano=${encodeURIComponent(ano)}&division=${encodeURIComponent(division)}&ciclo=${encodeURIComponent(ciclo)}`);
+        const alumnosFiltrados = await respuesta.json();
+
+        cuerpoTabla.innerHTML = '';
+
+        if (alumnosFiltrados.length > 0) {
+            mensajeSinResultados.classList.add('d-none');
+            contenedorTabla.classList.remove('d-none');
+
+            alumnosFiltrados.forEach(alumno => {
+                const fila = `
+                    <tr>
+                        <td class="text-center">
+                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" onchange="validarEstudiantes()" checked>
+                        </td>
+                        <td>
+                            <strong>${alumno.apellido_nombre}</strong><br>
+                            <small class="text-muted">DNI: ${alumno.dni} | ${alumno.ano}° "${alumno.division}"</small>
+                        </td>
+                        <td>${alumno.dni}</td>
+                        <td>
+                            <select class="form-select form-select-sm">
+                                <option value="" ${!alumno.grupo_sanguineo ? 'selected' : ''}>- Seleccionar -</option>
+                                <option value="A" ${alumno.grupo_sanguineo === 'A' ? 'selected' : ''}>A</option>
+                                <option value="B" ${alumno.grupo_sanguineo === 'B' ? 'selected' : ''}>B</option>
+                                <option value="AB" ${alumno.grupo_sanguineo === 'AB' ? 'selected' : ''}>AB</option>
+                                <option value="O" ${alumno.grupo_sanguineo === 'O' ? 'selected' : ''}>O</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm">
+                                <option value="" ${!alumno.factor_rh ? 'selected' : ''}>-</option>
+                                <option value="+" ${alumno.factor_rh === '+' ? 'selected' : ''}>+</option>
+                                <option value="-" ${alumno.factor_rh === '-' ? 'selected' : ''}>-</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="date" class="form-control form-control-sm" value="${alumno.fecha_nacimiento || ''}">
+                        </td>
+                    </tr>
+                `;
+                cuerpoTabla.innerHTML += fila;
+            });
+        } else {
+            contenedorTabla.classList.add('d-none');
+            mensajeSinResultados.classList.remove('d-none');
+        }
+    } catch (error) {
+        console.error("Error al consultar los estudiantes:", error);
+        alert("⚠️ Hubo un error al conectar con la base de datos.");
+        contenedorTabla.classList.add('d-none');
+    }
+
+    validarEstudiantes();
+}
 
 let contadorCursos = 0;
 const contenedorSeccionesCursos = document.getElementById('contenedorSeccionesCursos');
