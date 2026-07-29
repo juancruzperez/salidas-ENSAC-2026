@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Salidas Educativas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5 mb-5" id="contenedorPrincipal">
+    
+    <div class="text-center mb-4">
+        <h1 class="text-primary fw-bold">Gestión de Salidas Educativas</h1>
+        <p class="text-muted">Cumplimentación de Resolución Ministerial N°59/2026</p>
+    </div>
+
+    <div class="card shadow mb-4" id="seccion1-gestion">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Paso 1: Gestión y Proyecto</h4>
+        </div>
+        <div class="card-body">
+            <form id="formGestion" novalidate>
+                
+                <h5 class="text-primary border-bottom pb-2 mb-3 mt-2">Información General</h5>
+                <div class="row mb-4">
+                    <div class="col-md-12 mb-3">
+                        <label for="destino" class="form-label fw-bold">Destino del viaje</label>
+                        <input type="text" class="form-control" id="destino" placeholder="Ej: Ciudad de Buenos Aires" required>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="lugarSalida" class="form-label fw-bold">Lugar de salida</label>
+                        <input type="text" class="form-control" id="lugarSalida" placeholder="Ej: Puerta del colegio" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="lugarRegreso" class="form-label fw-bold">Lugar de regreso</label>
+                        <input type="text" class="form-control" id="lugarRegreso" placeholder="Ej: Puerta del colegio" required>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="cantEstudiantes" class="form-label fw-bold">Cantidad de estudiantes</label>
+                        <input type="number" class="form-control" id="cantEstudiantes" min="1" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="cantAcompanantes" class="form-label fw-bold">Cantidad de acompañantes</label>
+                        <input type="number" class="form-control" id="cantAcompanantes" min="1" required>
+                        <small id="alertaAcompanantes" class="text-danger fw-bold d-none"></small>
+                    </div>
+                </div>
+
+                <h5 class="text-primary border-bottom pb-2 mb-3">Cronograma</h5>
+                <div class="p-3 mb-4 bg-white border rounded shadow-sm">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="sinPernocte">
+                        <label class="form-check-label fw-bold text-danger" for="sinPernocte">
+                            El viaje es SIN pernocte (Ida y vuelta en el día)
+                        </label>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <label for="fechaSalida" class="form-label fw-bold">Fecha de salida</label>
+                            <input type="date" class="form-control" id="fechaSalida" required>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label for="horaSalida" class="form-label fw-bold">Horario de salida</label>
+                            <input type="time" class="form-control" id="horaSalida" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-2">
+                            <label for="fechaRegreso" class="form-label fw-bold">Fecha de regreso</label>
+                            <input type="date" class="form-control" id="fechaRegreso" required>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label for="horaRegreso" class="form-label fw-bold">Horario de regreso</label>
+                            <input type="time" class="form-control" id="horaRegreso" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="seccionAlojamiento">
+                    <h5 class="text-primary border-bottom pb-2 mb-3">Datos del Alojamiento</h5>
+                    <div class="row mb-4 p-3 bg-light border rounded">
+                        <div class="col-md-4 mb-3">
+                            <label for="nombreAlojamiento" class="form-label fw-bold">Nombre del lugar</label>
+                            <input type="text" class="form-control input-alojamiento" id="nombreAlojamiento" placeholder="Ej: Hotel Sierras" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="domicilioAlojamiento" class="form-label fw-bold">Domicilio</label>
+                            <input type="text" class="form-control input-alojamiento" id="domicilioAlojamiento" placeholder="Calle y número" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="telefonoAlojamiento" class="form-label fw-bold">Teléfono</label>
+                            <input type="tel" class="form-control input-alojamiento" id="telefonoAlojamiento" placeholder="Cod. área + número" required>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="text-primary border-bottom pb-2 mb-3">Proyecto y Organización</h5>
+                <div class="mb-4 p-3 bg-white border rounded shadow-sm">
+                    <label for="archivoProyecto" class="form-label fw-bold">Subir Proyecto y Cronograma de Actividades (Word: .doc, .docx)</label>
+                    <input type="file" class="form-control" id="archivoProyecto" accept=".doc,.docx" required>
+                    <div class="form-text text-muted mt-2">
+                        <strong>Requisitos según Res. Ministerial N°59/2026:</strong> El documento debe incluir fundamentación pedagógica, itinerario detallado (paradas técnicas) y ruta sanitaria y policial.
+                    </div>
+                </div>
+
+                <div class="text-end mt-4 border-top pt-3">
+                    <button type="button" class="btn btn-primary btn-lg" id="btnSiguienteEstudiantes">
+                        Continuar al Paso 2 &rarr;
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4 d-none" id="seccion2-estudiantes">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">Paso 2: Nómina de Estudiantes</h4>
+        </div>
+        <div class="card-body">
+            <form id="formEstudiantes">
+                
+                <div id="contenedorSeccionesCursos"></div>
+
+                <div class="card p-3 bg-light border-success mb-4 shadow-sm">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="checkAgregarOtroCurso">
+                        <label class="form-check-label fw-bold text-success" for="checkAgregarOtroCurso" style="cursor: pointer;">
+                            ➕ ¿Desea agregar estudiantes de otro curso?
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 border-top pt-3">
+                    <div>
+                        <h5 class="mb-0">Estudiantes seleccionados: 
+                            <span id="textoContadorEstudiantes" class="fw-bold text-danger">0 / 0</span>
+                        </h5>
+                        <small class="text-muted">Debe coincidir con la cantidad declarada en el Paso 1.</small>
+                    </div>
+                    <button type="button" class="btn btn-success btn-lg" id="btnSiguienteDocentes" disabled>
+                        Continuar al Paso 3 &rarr;
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4 d-none" id="seccion3-docentes">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Paso 3: Datos de Docentes Acompañantes</h4>
+        </div>
+        <div class="card-body">
+            <form id="formDocentes">
+                <p class="text-muted">Completa los datos de los <span id="labelCantDocentes" class="fw-bold">0</span> docentes acompañantes declarados:</p>
+                
+                <div id="contenedorDocentesForm"></div>
+
+                <div class="text-end mt-4 border-top pt-3">
+                    <button type="button" class="btn btn-info text-white btn-lg" id="btnSiguienteTransporte" disabled>
+                        Continuar al Paso 4 &rarr;
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4 d-none" id="seccion4-transporte">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">Paso 4: Documentación del Transporte</h4>
+        </div>
+        <div class="card-body">
+            <form id="formTransporte" novalidate>
+                
+                <div class="form-check mb-4 bg-white p-3 border rounded">
+                    <input class="form-check-input" type="checkbox" id="sinTransporte">
+                    <label class="form-check-label fw-bold text-danger" for="sinTransporte" style="cursor: pointer;">
+                        Sin transporte (Traslado por medios propios, caminata o particulares)
+                    </label>
+                </div>
+
+                <div id="camposTransporte">
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold">Póliza de seguro (PDF)</label>
+                            <input type="file" class="form-control input-transporte" accept=".pdf" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Válido hasta</label>
+                            <input type="date" class="form-control input-validez" required>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold">Habilitación de transporte (PDF)</label>
+                            <input type="file" class="form-control input-transporte" accept=".pdf" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Válido hasta</label>
+                            <input type="date" class="form-control input-validez" required>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold">Licencia de Conductor D-2 (PDF)</label>
+                            <input type="file" class="form-control input-transporte" accept=".pdf" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Válido hasta</label>
+                            <input type="date" class="form-control input-validez" required>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4 align-items-center">
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold">Apto Psicofísico (PDF)</label>
+                            <input type="file" class="form-control input-transporte" accept=".pdf" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Válido hasta</label>
+                            <input type="date" class="form-control input-validez" required>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-5 text-center border-top pt-4">
+                    <h5 class="mb-3">¡Todos los requerimientos han sido completados!</h5>
+                    <button type="submit" class="btn btn-dark btn-lg px-5">
+                        ✅ Validar y Guardar Salida Educativa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
