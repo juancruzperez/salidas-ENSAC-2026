@@ -195,6 +195,17 @@ function agregarSeccionCurso() {
                 </div>
 
                 <div id="contenedorTabla_${idCurso}" class="d-none mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded border">
+                        <span class="small text-muted fw-bold">Acciones rápidas:</span>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="seleccionarTodosAlumnos(${idCurso})">
+                                ☑️ Seleccionar todos
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deseleccionarTodosAlumnos(${idCurso})">
+                                🔲 Deseleccionar todos
+                            </button>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle mb-1">
                             <thead class="table-light">
@@ -256,7 +267,7 @@ async function buscarAlumnosPorCurso(idCurso) {
                 const fila = `
                     <tr>
                         <td class="text-center">
-                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" onchange="validarEstudiantes()" checked>
+                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" onchange="validarEstudiantes()">
                         </td>
                         <td>
                             <strong>${alumno.apellido_nombre}</strong><br>
@@ -293,6 +304,19 @@ async function buscarAlumnosPorCurso(idCurso) {
         contenedorTabla.classList.add('d-none');
     }
 
+    validarEstudiantes();
+}
+
+// Funciones para selección masiva por curso
+function seleccionarTodosAlumnos(idCurso) {
+    const checkboxes = document.querySelectorAll(`#cuerpoTabla_${idCurso} .check-estudiante`);
+    checkboxes.forEach(cb => cb.checked = true);
+    validarEstudiantes();
+}
+
+function deseleccionarTodosAlumnos(idCurso) {
+    const checkboxes = document.querySelectorAll(`#cuerpoTabla_${idCurso} .check-estudiante`);
+    checkboxes.forEach(cb => cb.checked = false);
     validarEstudiantes();
 }
 
