@@ -202,8 +202,7 @@ function agregarSeccionCurso() {
                                     <th scope="col" class="text-center" style="width: 50px;">Viaja</th>
                                     <th scope="col">Apellido y Nombre</th>
                                     <th scope="col">DNI</th>
-                                    <th scope="col" style="width: 130px;">G. Sanguíneo</th>
-                                    <th scope="col" style="width: 100px;">Factor RH</th>
+                                    <th scope="col" style="width: 160px;">G. Sanguíneo y RH</th>
                                     <th scope="col" style="width: 160px;">Fecha Nac.</th>
                                 </tr>
                             </thead>
@@ -232,7 +231,7 @@ async function buscarAlumnosPorCurso(idCurso) {
     const contenedorTabla = document.getElementById(`contenedorTabla_${idCurso}`);
     const mensajeSinResultados = document.getElementById(`mensajeSinResultados_${idCurso}`);
 
-    cuerpoTabla.innerHTML = '<tr><td colspan="6" class="text-center">Buscando en la base de datos...</td></tr>';
+    cuerpoTabla.innerHTML = '<tr><td colspan="5" class="text-center">Buscando en la base de datos...</td></tr>';
     contenedorTabla.classList.remove('d-none');
     mensajeSinResultados.classList.add('d-none');
 
@@ -252,6 +251,8 @@ async function buscarAlumnosPorCurso(idCurso) {
             contenedorTabla.classList.remove('d-none');
 
             alumnosFiltrados.forEach(alumno => {
+                const gsGuardado = (alumno.grupo_sanguineo || '').trim();
+
                 const fila = `
                     <tr>
                         <td class="text-center">
@@ -263,19 +264,16 @@ async function buscarAlumnosPorCurso(idCurso) {
                         </td>
                         <td>${alumno.dni}</td>
                         <td>
-                            <select class="form-select form-select-sm">
-                                <option value="" ${!alumno.grupo_sanguineo ? 'selected' : ''}>- Seleccionar -</option>
-                                <option value="A" ${alumno.grupo_sanguineo === 'A' ? 'selected' : ''}>A</option>
-                                <option value="B" ${alumno.grupo_sanguineo === 'B' ? 'selected' : ''}>B</option>
-                                <option value="AB" ${alumno.grupo_sanguineo === 'AB' ? 'selected' : ''}>AB</option>
-                                <option value="O" ${alumno.grupo_sanguineo === 'O' ? 'selected' : ''}>O</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select class="form-select form-select-sm">
-                                <option value="" ${!alumno.factor_rh ? 'selected' : ''}>-</option>
-                                <option value="+" ${alumno.factor_rh === '+' ? 'selected' : ''}>+</option>
-                                <option value="-" ${alumno.factor_rh === '-' ? 'selected' : ''}>-</option>
+                            <select class="form-select form-select-sm input-grupo-sanguineo">
+                                <option value="" ${!gsGuardado ? 'selected' : ''}>- Seleccionar -</option>
+                                <option value="A +" ${gsGuardado === 'A +' || gsGuardado === 'A+' ? 'selected' : ''}>A +</option>
+                                <option value="A -" ${gsGuardado === 'A -' || gsGuardado === 'A-' ? 'selected' : ''}>A -</option>
+                                <option value="B +" ${gsGuardado === 'B +' || gsGuardado === 'B+' ? 'selected' : ''}>B +</option>
+                                <option value="B -" ${gsGuardado === 'B -' || gsGuardado === 'B-' ? 'selected' : ''}>B -</option>
+                                <option value="AB +" ${gsGuardado === 'AB +' || gsGuardado === 'AB+' ? 'selected' : ''}>AB +</option>
+                                <option value="AB -" ${gsGuardado === 'AB -' || gsGuardado === 'AB-' ? 'selected' : ''}>AB -</option>
+                                <option value="O +" ${gsGuardado === 'O +' || gsGuardado === 'O+' ? 'selected' : ''}>O +</option>
+                                <option value="O -" ${gsGuardado === 'O -' || gsGuardado === 'O-' ? 'selected' : ''}>O -</option>
                             </select>
                         </td>
                         <td>
