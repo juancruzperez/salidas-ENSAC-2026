@@ -62,8 +62,7 @@ function manejarPernocte() {
         seccionAlojamiento.style.display = 'block';
         inputsAlojamiento.forEach(input => input.required = true);
     }
-    // La fecha de regreso no puede ser anterior a la de salida en el calendario
-    if(inputFechaSalida.value) {
+    if (inputFechaSalida.value) {
         inputFechaRegreso.min = inputFechaSalida.value;
     }
 }
@@ -75,7 +74,6 @@ inputFechaSalida.addEventListener('change', function() {
 manejarPernocte();
 
 btnSiguienteEstudiantes.addEventListener('click', function() {
-    // Validaciones cronológicas
     const fSalida = inputFechaSalida.value;
     const fRegreso = inputFechaRegreso.value;
     const hSalida = inputHoraSalida.value;
@@ -154,8 +152,6 @@ function agregarSeccionCurso() {
                             <option value="TODOS">Todos</option>
                             <option value="MAÑANA">MAÑANA</option>
                             <option value="TARDE">TARDE</option>
-                            <option value="VESPERTINO">VESPERTINO</option>
-                            <option value="NOCHE">NOCHE</option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -168,7 +164,6 @@ function agregarSeccionCurso() {
                             <option value="CUARTO AÑO">CUARTO AÑO</option>
                             <option value="QUINTO AÑO">QUINTO AÑO</option>
                             <option value="SEXTO AÑO">SEXTO AÑO</option>
-                            <option value="SEPTIMO AÑO">SEPTIMO AÑO</option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -180,7 +175,6 @@ function agregarSeccionCurso() {
                             <option value="C">C</option>
                             <option value="D">D</option>
                             <option value="E">E</option>
-                            <option value="F">F</option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -188,14 +182,9 @@ function agregarSeccionCurso() {
                         <select class="form-select" id="filtroCiclo_${idCurso}">
                             <option value="TODOS">Todos</option>
                             <option value="CICLO BASICO">CICLO BASICO</option>
+                            <option value="LENGUAS">LENGUAS</option>
                             <option value="CIENCIAS SOCIALES">CIENCIAS SOCIALES</option>
                             <option value="CIENCIAS NATURALES">CIENCIAS NATURALES</option>
-                            <option value="ECONOMIA Y ADMINISTRACION">ECONOMIA Y ADMINISTRACION</option>
-                            <option value="LENGUAS">LENGUAS</option>
-                            <option value="INFORMATICA">INFORMATICA</option>
-                            <option value="ARTE">ARTE</option>
-                            <option value="EDUCACION FISICA">EDUCACION FISICA</option>
-                            <option value="TURISMO">TURISMO</option>
                         </select>
                     </div>
                     <div class="col-12 text-center mt-2">
@@ -243,13 +232,11 @@ async function buscarAlumnosPorCurso(idCurso) {
     const contenedorTabla = document.getElementById(`contenedorTabla_${idCurso}`);
     const mensajeSinResultados = document.getElementById(`mensajeSinResultados_${idCurso}`);
 
-    // Mostrar mensaje de carga
     cuerpoTabla.innerHTML = '<tr><td colspan="6" class="text-center">Buscando en la base de datos...</td></tr>';
     contenedorTabla.classList.remove('d-none');
     mensajeSinResultados.classList.add('d-none');
 
     try {
-        // Consultamos a nuestra API en Vercel pasando los filtros seleccionados
         const respuesta = await fetch(`/api/estudiantes?turno=${encodeURIComponent(turno)}&ano=${encodeURIComponent(ano)}&division=${encodeURIComponent(division)}&ciclo=${encodeURIComponent(ciclo)}`);
         
         if (!respuesta.ok) {
@@ -326,7 +313,6 @@ checkAgregarOtroCurso.addEventListener('change', function() {
     }
 });
 
-// Inicializar la primera búsqueda
 agregarSeccionCurso();
 validarEstudiantes();
 
