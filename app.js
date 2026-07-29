@@ -103,7 +103,7 @@ btnSiguienteEstudiantes.addEventListener('click', function() {
 });
 
 // ------------------------------------------------------------
-// LÓGICA DEL PASO 2: ESTUDIANTES (Conectado a Vercel Postgres)
+// LÓGICA DEL PASO 2: ESTUDIANTES 
 // ------------------------------------------------------------
 let contadorCursos = 0;
 const contenedorSeccionesCursos = document.getElementById('contenedorSeccionesCursos');
@@ -264,6 +264,7 @@ async function buscarAlumnosPorCurso(idCurso) {
             alumnosFiltrados.forEach(alumno => {
                 const gsGuardado = (alumno.grupo_sanguineo || '').trim();
 
+                // A los selectores les agregamos la clase "input-grupo-sanguineo" / "input-fecha-nacimiento" y un data-dni
                 const fila = `
                     <tr>
                         <td class="text-center">
@@ -275,7 +276,7 @@ async function buscarAlumnosPorCurso(idCurso) {
                         </td>
                         <td>${alumno.dni}</td>
                         <td>
-                            <select class="form-select form-select-sm input-grupo-sanguineo">
+                            <select class="form-select form-select-sm input-grupo-sanguineo" data-dni="${alumno.dni}">
                                 <option value="" ${!gsGuardado ? 'selected' : ''}>- Seleccionar -</option>
                                 <option value="A +" ${gsGuardado === 'A +' || gsGuardado === 'A+' ? 'selected' : ''}>A +</option>
                                 <option value="A -" ${gsGuardado === 'A -' || gsGuardado === 'A-' ? 'selected' : ''}>A -</option>
@@ -288,7 +289,7 @@ async function buscarAlumnosPorCurso(idCurso) {
                             </select>
                         </td>
                         <td>
-                            <input type="date" class="form-control form-control-sm" value="${alumno.fecha_nacimiento || ''}">
+                            <input type="date" class="form-control form-control-sm input-fecha-nacimiento" data-dni="${alumno.dni}" value="${alumno.fecha_nacimiento || ''}">
                         </td>
                     </tr>
                 `;
@@ -307,7 +308,6 @@ async function buscarAlumnosPorCurso(idCurso) {
     validarEstudiantes();
 }
 
-// Funciones para selección masiva por curso
 function seleccionarTodosAlumnos(idCurso) {
     const checkboxes = document.querySelectorAll(`#cuerpoTabla_${idCurso} .check-estudiante`);
     checkboxes.forEach(cb => cb.checked = true);
@@ -420,7 +420,7 @@ btnSiguienteTransporte.addEventListener('click', function() {
 });
 
 // ------------------------------------------------------------
-// LÓGICA DEL PASO 4: TRANSPORTE Y VALIDACIÓN DE FECHAS DE VALIDEZ
+// LÓGICA DEL PASO 4: TRANSPORTE Y GUARDADO FINAL
 // ------------------------------------------------------------
 const sinTransporte = document.getElementById('sinTransporte');
 const camposTransporte = document.getElementById('camposTransporte');
@@ -474,7 +474,8 @@ inputsValidez.forEach(inputValidez => {
     });
 });
 
-formTransporte.addEventListener('submit', function(e) {
+// Al enviar el formulario final, recopilamos los datos médicos y los guardamos
+formTransporte.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     let hayDocumentosVencidos = false;
@@ -492,8 +493,50 @@ formTransporte.addEventListener('submit', function(e) {
     }
 
     if (formTransporte.checkValidity()) {
-        alert("🎉 ¡Excelente! La salida educativa ha sido validada y registrada exitosamente bajo los requerimientos de la Resolución Ministerial N°59/2026.");
-        location.reload(); 
+        const btnSubmit = formTransporte.querySelector('button[type="submit"]');
+        const textoOriginal = btnSubmit.innerHTML;
+        
+        // Bloqueamos el botón y mostramos que está guardando
+        btnSubmit.innerHTML = "⏳ Guardando datos en la nube...";
+        btnSubmit.disabled = true;
+
+        try {
+            // Recopilar los datos de grupo sanguíneo y nacimiento de TODOS los estudiantes seleccionados
+            const estudiantesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
+            const datosAActualizar = [];
+
+            estudiantesSeleccionados.forEach(checkbox => {
+                const dni = checkbox.value;
+                const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
+                const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
+
+                if (selectGS && inputFecha) {
+                    datosAActualizar.push({
+                        dni: dni,
+                        grupoSanguineo: selectGS.value,
+                        fechaNacimiento: inputFecha.value
+                    });
+                }
+            });
+
+            // Si hay datos para guardar, hacemos la petición POST a nuestra nueva API
+            if (datosAActualizar.length > 0) {
+                await fetch('/api/actualizar-estudiantes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estudiantes: datosAActualizar })
+                });
+            }
+
+            alert("🎉 ¡Excelente! La salida educativa ha sido validada y los datos médicos de los estudiantes se actualizaron en la base de datos.");
+            location.reload(); 
+        } catch(error) {
+            console.error("Error al guardar:", error);
+            alert("⚠️ Hubo un error al guardar los datos en la base de datos.");
+            btnSubmit.innerHTML = textoOriginal;
+            btnSubmit.disabled = false;
+        }
+
     } else {
         formTransporte.classList.add('was-validated');
         alert("⚠️ Por favor, completa toda la documentación requerida del transporte o marca la casilla 'Sin transporte'.");
