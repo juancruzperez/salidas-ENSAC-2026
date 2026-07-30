@@ -263,18 +263,22 @@ async function buscarAlumnosPorCurso(idCurso) {
 
             alumnosFiltrados.forEach(alumno => {
                 const gsGuardado = (alumno.grupo_sanguineo || '').trim();
-                
-                // Formateamos el curso para incluir la especialidad en el PDF
-                const descripcionCurso = `${alumno.ano} "${alumno.division}" - ${alumno.ciclo_especializacion}`;
 
                 const fila = `
                     <tr>
                         <td class="text-center">
-                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" data-nombre="${alumno.apellido_nombre}" data-curso="${descripcionCurso}" onchange="validarEstudiantes()">
+                            <input class="form-check-input check-estudiante" type="checkbox" 
+                                value="${alumno.dni}" 
+                                data-nombre="${alumno.apellido_nombre}" 
+                                data-ano="${alumno.ano}" 
+                                data-division="${alumno.division}" 
+                                data-turno="${alumno.turno}" 
+                                data-ciclo="${alumno.ciclo_especializacion || ''}" 
+                                onchange="validarEstudiantes()">
                         </td>
                         <td>
                             <strong>${alumno.apellido_nombre}</strong><br>
-                            <small class="text-muted">DNI: ${alumno.dni} | ${descripcionCurso}</small>
+                            <small class="text-muted">DNI: ${alumno.dni} | ${alumno.ano}° "${alumno.division}" - ${alumno.ciclo_especializacion}</small>
                         </td>
                         <td>${alumno.dni}</td>
                         <td>
@@ -425,7 +429,6 @@ btnSiguienteTransporte.addEventListener('click', function() {
 // LÓGICA DE GENERACIÓN DE UN ÚNICO PDF CONSOLIDADO (3 HOJAS)
 // ------------------------------------------------------------
 
-// Función auxiliar para formatear fechas a DD/MM/AAAA
 function formatearFechaDDMMAAAA(fechaISO) {
     if (!fechaISO) return '-';
     const partes = fechaISO.split('-');
@@ -437,7 +440,6 @@ function generarPDFUnico() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Valores en Mayúscula sostenida y fechas formateadas
     const destino = (document.getElementById('destino').value || 'Destino').toUpperCase();
     const fechaSalidaIso = document.getElementById('fechaSalida').value || '';
     const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
@@ -506,7 +508,14 @@ function generarPDFUnico() {
     checkboxes.forEach((cb, index) => {
         const dni = cb.value;
         const nombre = (cb.getAttribute('data-nombre') || '-').toUpperCase();
-        const curso = (cb.getAttribute('data-curso') || '-').toUpperCase(); // Ya viene con la especialidad del buscador
+        const ano = (cb.getAttribute('data-ano') || '-').toUpperCase();
+        const division = (cb.getAttribute('data-division') || '-').toUpperCase();
+        const turno = (cb.getAttribute('data-turno') || '-').toUpperCase();
+        const ciclo = (cb.getAttribute('data-ciclo') || '-').toUpperCase();
+        
+        // Concatenamos Curso/Año + División + Especialidad/Ciclo + Turno con espacios
+        const pertenenciaInstitucional = `${ano} ${division} ${ciclo} ${turno}`.replace(/\s+/g, ' ').trim();
+
         const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
         const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
 
@@ -517,7 +526,7 @@ function generarPDFUnico() {
             index + 1,
             nombre,
             dni,
-            curso,
+            pertenenciaInstitucional,
             (gs || 'NO ESPECIFICADO').toUpperCase(),
             formatearFechaDDMMAAAA(fechaNac)
         ]);
@@ -525,11 +534,11 @@ function generarPDFUnico() {
 
     doc.autoTable({
         startY: 33,
-        head: [['#', 'Apellido y Nombre', 'DNI', 'Curso / Especialidad', 'G. Sanguíneo', 'Fecha Nac.']],
+        head: [['#', 'Apellido y Nombre', 'DNI', 'Pertenencia Institucional', 'G. Sanguíneo', 'Fecha Nac.']],
         body: tablaEstudiantes,
         theme: 'grid',
         headStyles: { fillColor: [25, 135, 84] },
-        styles: { fontSize: 8 }
+        styles: { fontSize: 8.5 }
     });
 
     // ==========================================
