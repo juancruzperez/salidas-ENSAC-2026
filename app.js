@@ -1058,3 +1058,63 @@ if (formTransporte) {
         }
     });
 }
+
+// ------------------------------------------------------------
+// EXPORTAR INFORME EJECUTIVO COMPLETO A PDF (BACKUP FÍSICO)
+// ------------------------------------------------------------
+async function exportarInformeEjecutivoPDF() {
+    const { jsPDF } = window.jspdf;
+    // Creamos el documento en orientación horizontal ('landscape') para aprovechar el ancho de la tabla
+    const doc = new jsPDF('landscape');
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("INFORME EJECUTIVO DE SALIDAS EDUCATIVAS", 14, 15);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const fechaActual = new Date().toLocaleDateString('es-AR');
+    doc.text(`Fecha de emisión: ${fechaActual} | Respaldo Físico / Archivo`, 14, 22);
+
+    try {
+        const respuesta = await fetch('/api/salidas');
+        const salidas = await respuesta.json();
+
+        if (!salidas || salidas.length === 0) {
+            alert("⚠️ No hay salidas registradas actualmente para exportar.");
+            return;
+        }
+
+        const filasTabla = salidas.map(s => {
+            const modalidad = s.es_pernocte ? 'CON PERNOCTE' : 'SIN PERNOCTE';
+            const fechaSalida = s.fecha_salida ? s.fecha_salida.split('T')[0] : '-';
+            const fechaRegreso = s.fecha_regreso ? s.fecha_regreso.split('T')[0] : '-';
+            
+            return [
+                `#${s.id}`,
+                (s.docente_organizador || 'NO ESPECIFICADO').toUpperCase(),
+                (s.destino || '-').toUpperCase(),
+                `${fechaSalida} (${s.hora_salida || '-'})`,
+                `${fechaRegreso} (${s.hora_regreso || '-'})`,
+                modalidad,
+                s.cant_estudiantes || 0,
+                s.cant_acompanantes || 0,
+                (s.estado || 'REGISTRADA').toUpperCase()
+            ];
+        });
+
+        doc.autoTable({
+            startY: 28,
+            head: [['# ID', 'Docente/s Organizador/es', 'Destino', 'Fecha Salida', 'Fecha Regreso', 'Modalidad', 'Est.', 'Acomp.', 'Estado']],
+            body: filasTabla,
+            theme: 'grid',
+            headStyles: { fillColor: [13, 110, 253] },
+            styles: { fontSize: 8.5 }
+        });
+
+        doc.save("Informe_Ejecutivo_Salidas_Educativas_Completo.pdf");
+    } catch (error) {
+        console.error("Error al generar el PDF del informe ejecutivo:", error);
+        alert("⚠️ Hubo un error al conectar con la base de datos para exportar el informe.");
+    }
+}
