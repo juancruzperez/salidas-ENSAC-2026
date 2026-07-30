@@ -1,15 +1,21 @@
 // ==========================================
-// LÓGICA DE AUTENTICACIÓN Y ROLES
+// LÓGICA DE AUTENTICACIÓN, ROLES Y VISTAS ADMIN
 // ==========================================
 const seccionLogin = document.getElementById('seccionLogin');
 const contenedorPrincipal = document.getElementById('contenedorPrincipal');
-const vistaSecretariaDireccion = document.getElementById('vistaSecretariaDireccion');
+const vistaInformeEjecutivo = document.getElementById('vistaInformeEjecutivo');
+const adminNavContainer = document.getElementById('adminNavContainer');
+const adminNavContainerCarga = document.getElementById('adminNavContainerCarga');
+
 const formLogin = document.getElementById('formLogin');
 const loginUser = document.getElementById('loginUser');
 const loginPass = document.getElementById('loginPass');
 const alertaLogin = document.getElementById('alertaLogin');
 const spanUsuarioRol = document.getElementById('spanUsuarioRol');
 const spanRolEjecutivo = document.getElementById('spanRolEjecutivo');
+const tablaResumenesEjecutivos = document.getElementById('tablaResumenesEjecutivos');
+
+let usuarioActual = null;
 
 formLogin.addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -31,8 +37,9 @@ formLogin.addEventListener('submit', async function(e) {
             throw new Error(data.error || 'Credenciales inválidas');
         }
 
-        localStorage.setItem('usuarioSesion', JSON.stringify(data.user));
-        controlarPermisos(data.user);
+        usuarioActual = data.user;
+        localStorage.setItem('usuarioSesion', JSON.stringify(usuarioActual));
+        controlarPermisos(usuarioActual);
 
     } catch (error) {
         alertaLogin.textContent = error.message;
@@ -44,12 +51,65 @@ function controlarPermisos(user) {
     seccionLogin.classList.add('d-none');
 
     if (user.role === 'secretaria' || user.role === 'direccion') {
-        vistaSecretariaDireccion.classList.remove('d-none');
+        vistaInformeEjecutivo.classList.remove('d-none');
         spanRolEjecutivo.textContent = user.role.toUpperCase();
-    } else {
-        // admin o docente (usuario final)
+        cargarInformeEjecutivo();
+    } else if (user.role === 'admin') {
+        // Admin ve por defecto la carga, pero tiene los botones de navegación
+        adminNavContainerCarga.classList.remove('d-none');
         contenedorPrincipal.classList.remove('d-none');
-        spanUsuarioRol.textContent = `${user.username.toUpperCase()} (${user.role.toUpperCase()})`;
+        spanUsuarioRol.textContent = `${user.username.toUpperCase()} (ADMIN)`;
+    } else {
+        // Docente (usuario final)
+        contenedorPrincipal.classList.remove('d-none');
+        spanUsuarioRol.textContent = `${user.username.toUpperCase()} (DOCENTE)`;
+    }
+}
+
+function cambiarVistaAdmin(vista) {
+    if (vista === 'informe') {
+        contenedorPrincipal.classList.add('d-none');
+        vistaInformeEjecutivo.classList.remove('d-none');
+        spanRolEjecutivo.textContent = "ADMINISTRADOR (VISTA INFORME)";
+        adminNavContainer.classList.remove('d-none');
+        cargarInformeEjecutivo();
+    } else {
+        vistaInformeEjecutivo.classList.add('d-none');
+        contenedorPrincipal.classList.remove('d-none');
+        adminNavContainerCarga.classList.remove('d-none');
+    }
+}
+
+async function cargarInformeEjecutivo() {
+    tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Cargando salidas registradas...</td></tr>';
+    try {
+        const respuesta = await fetch('/api/salidas');
+        const salidas = await respuesta.json();
+
+        tablaResumenesEjecutivos.innerHTML = '';
+        if (salidas.length > 0) {
+            salidas.forEach((s, index) => {
+                const modalidad = s.es_pernocte ? 'CON PERNOCTE' : 'SIN PERNOCTE';
+                const fila = `
+                    <tr>
+                        <td>#${s.id}</td>
+                        <td><strong>${s.destino}</strong></td>
+                        <td>${s.fecha_salida.split('T')[0]} (${s.hora_salida})</td>
+                        <td>${s.fecha_regreso.split('T')[0]} (${s.hora_regreso})</td>
+                        <td><span class="badge bg-info text-dark">${modalidad}</span></td>
+                        <td>${s.cant_estudiantes}</td>
+                        <td>${s.cant_acompanantes}</td>
+                        <td><span class="badge bg-success">${s.estado}</span></td>
+                    </tr>
+                `;
+                tablaResumenesEjecutivos.innerHTML += fila;
+            });
+        } else {
+            tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay salidas registradas actualmente.</td></tr>';
+        }
+    } catch (error) {
+        console.error("Error al cargar informe:", error);
+        tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al conectar con la base de datos.</td></tr>';
     }
 }
 
@@ -61,8 +121,8 @@ function cerrarSesion() {
 window.addEventListener('DOMContentLoaded', () => {
     const sesionGuardada = localStorage.getItem('usuarioSesion');
     if (sesionGuardada) {
-        const user = JSON.parse(sesionGuardada);
-        controlarPermisos(user);
+        usuarioActual = JSON.parse(sesionGuardada);
+        controlarPermisos(usuarioActual);
     }
 });
 
@@ -190,7 +250,7 @@ if (btnSiguienteEstudiantes) {
 
         if (!formGestion.checkValidity()) {
             formGestion.classList.add('was-validated');
-            alert("⚠️ Por favor, completa todos los campos obligatorios y adjunta el archivo del proyecto en el Paso 1.");
+            alert("⚠️ Por favor, completa todos los campos obligatorios en el Paso 1.");
         } else {
             formGestion.classList.remove('was-validated');
             seccion2.classList.remove('d-none');
@@ -252,7 +312,7 @@ if (btnSiguienteDocentes) {
         });
 
         if (!datosCompletos) {
-            alert(`⚠️ No se puede avanzar: El/la estudiante "${nombreIncompleto}" (y posiblemente otros) seleccionado/s tiene incompleto el Grupo Sanguíneo o la Fecha de Nacimiento. Estos datos son obligatorios.`);
+            alert(`⚠️ No se puede avanzar: El/la estudiante "${nombreIncompleto}" seleccionado/s tiene incompleto el Grupo Sanguíneo o la Fecha de Nacimiento.`);
             return;
         }
 
@@ -383,7 +443,6 @@ async function buscarAlumnosPorCurso(idCurso) {
         }
 
         const alumnosFiltrados = await respuesta.json();
-
         cuerpoTabla.innerHTML = '';
 
         if (alumnosFiltrados.length > 0) {
@@ -652,24 +711,23 @@ function formatearFechaDDMMAAAA(fechaISO) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
-function generarPDFUnico() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
+function obtenerDestinoFormateado() {
     const destinoBase = (document.getElementById('destino').value || 'DESTINO').trim();
-    let destinoFinalFormateado = "";
-    
     if (document.getElementById('salidaLocal').checked) {
-        destinoFinalFormateado = `${destinoBase} - CÓRDOBA`;
+        return `${destinoBase} - CÓRDOBA`.toUpperCase();
     } else {
         const pais = (document.getElementById('paisDestino').value || '').trim();
         const provincia = (document.getElementById('provinciaDestino').value || '').trim();
         const ciudad = (document.getElementById('ciudadDestino').value || '').trim();
-        destinoFinalFormateado = `${destinoBase} - ${ciudad}, ${provincia}, ${pais}`;
+        return `${destinoBase} - ${ciudad}, ${provincia}, ${pais}`.toUpperCase();
     }
-    
-    destinoFinalFormateado = destinoFinalFormateado.toUpperCase();
+}
 
+function generarPDFUnico() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const destinoFinalFormateado = obtenerDestinoFormateado();
     const fechaSalidaIso = document.getElementById('fechaSalida').value || '';
     const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
 
@@ -900,6 +958,7 @@ if (formTransporte) {
             btnSubmit.disabled = true;
 
             try {
+                // 1. Guardar datos médicos de estudiantes en base de datos
                 const estudiantesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
                 const datosAActualizar = [];
 
@@ -925,9 +984,32 @@ if (formTransporte) {
                     });
                 }
 
+                // 2. Registrar la salida educativa en la nueva tabla 'salidas'
+                const destinoFinal = obtenerDestinoFormateado();
+                const payloadSalida = {
+                    destinoFinal,
+                    lugarSalida: document.getElementById('lugarSalida').value.trim(),
+                    lugarRegreso: document.getElementById('lugarRegreso').value.trim(),
+                    cantEstudiantes: parseInt(document.getElementById('cantEstudiantes').value) || 0,
+                    cantAcompanantes: parseInt(document.getElementById('cantAcompanantes').value) || 0,
+                    fechaSalida: document.getElementById('fechaSalida').value,
+                    horaSalida: document.getElementById('horaSalida').value,
+                    fechaRegreso: document.getElementById('fechaRegreso').value,
+                    horaRegreso: document.getElementById('horaRegreso').value,
+                    sinPernocte: checkboxSinPernocte.checked,
+                    nombreAlojamiento: document.getElementById('nombreAlojamiento')?.value.trim() || ''
+                };
+
+                await fetch('/api/guardar-salida', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payloadSalida)
+                });
+
+                // 3. Generar y descargar PDF consolidado
                 generarPDFUnico();
 
-                alert("🎉 ¡Excelente! La salida educativa ha sido registrada, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
+                alert("🎉 ¡Excelente! La salida educativa ha sido registrada en el sistema, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
                 location.reload(); 
             } catch(error) {
                 console.error("Error al guardar:", error);

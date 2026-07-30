@@ -36,7 +36,7 @@
     </div>
 </div>
 
-<div class="container mt-5 mb-5 d-none" id="vistaSecretariaDireccion">
+<div class="container mt-5 mb-5 d-none" id="vistaInformeEjecutivo">
     <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
         <div>
             <h2 class="text-primary fw-bold mb-0">Panel Institucional</h2>
@@ -45,26 +45,35 @@
         <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
+    <div id="adminNavContainer" class="mb-4 text-center d-none">
+        <div class="btn-group shadow-sm" role="group">
+            <button type="button" class="btn btn-outline-primary px-4" onclick="cambiarVistaAdmin('carga')">📝 Ir a Carga de Salida</button>
+            <button type="button" class="btn btn-primary px-4 active" onclick="cambiarVistaAdmin('informe')">📊 Ver Informe Ejecutivo</button>
+        </div>
+    </div>
+
     <div class="card shadow mb-4">
         <div class="card-header bg-secondary text-white">
             <h4 class="mb-0">Resúmenes Ejecutivos de Salidas Educativas</h4>
         </div>
         <div class="card-body bg-white">
-            <p class="text-muted">Listado consolidado de las salidas registradas en la institución.</p>
+            <p class="text-muted">Listado consolidado de las salidas registradas en el sistema.</p>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th># ID</th>
                             <th>Destino</th>
                             <th>Fecha Salida</th>
+                            <th>Fecha Regreso</th>
                             <th>Modalidad</th>
                             <th>Estudiantes</th>
+                            <th>Acompañantes</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody id="tablaResumenesEjecutivos">
-                        <tr><td colspan="6" class="text-center text-muted">No hay salidas registradas actualmente.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted">Cargando registros...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -80,6 +89,13 @@
             <small class="text-muted">Usuario conectado: <span id="spanUsuarioRol" class="fw-bold text-dark"></span></small>
         </div>
         <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
+    </div>
+
+    <div id="adminNavContainerCarga" class="mb-4 text-center d-none">
+        <div class="btn-group shadow-sm" role="group">
+            <button type="button" class="btn btn-primary px-4 active" onclick="cambiarVistaAdmin('carga')">📝 Carga de Salida</button>
+            <button type="button" class="btn btn-outline-primary px-4" onclick="cambiarVistaAdmin('informe')">📊 Ver Informe Ejecutivo</button>
+        </div>
     </div>
 
     <div class="card shadow mb-4" id="seccion1-gestion">
@@ -274,7 +290,7 @@
                         <div class="col-md-5">
                             <label class="form-label fw-bold">Válido hasta</label>
                             <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
                         </div>
                     </div>
                     <div class="row mb-3 align-items-center">
@@ -285,7 +301,7 @@
                         <div class="col-md-5">
                             <label class="form-label fw-bold">Válido hasta</label>
                             <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
                         </div>
                     </div>
                     <div class="row mb-3 align-items-center">
@@ -296,7 +312,7 @@
                         <div class="col-md-5">
                             <label class="form-label fw-bold">Válido hasta</label>
                             <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
                         </div>
                     </div>
                     <div class="row mb-4 align-items-center">
@@ -307,7 +323,7 @@
                         <div class="col-md-5">
                             <label class="form-label fw-bold">Válido hasta</label>
                             <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
+                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
                         </div>
                     </div>
                 </div>
