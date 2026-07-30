@@ -26,12 +26,14 @@ module.exports = async function handler(request, response) {
       params.push(ciclo);
     }
 
+    // FORZAMOS EL ORDEN ALFABÉTICO SIEMPRE
+    query += ` ORDER BY apellido_nombre ASC`;
+
     // Ejecutamos la consulta en Vercel Postgres
     const result = await sql.query(query, params);
     
     return response.status(200).json(result.rows);
   } catch (error) {
-    // Esto imprimirá el error real en los logs de Vercel
     console.error("Error en la base de datos:", error);
     return response.status(500).json({ error: error.message });
   }

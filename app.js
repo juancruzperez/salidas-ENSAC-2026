@@ -419,15 +419,18 @@ btnSiguienteTransporte.addEventListener('click', function() {
 });
 
 // ------------------------------------------------------------
-// LÓGICA DE GENERACIÓN DE DOCUMENTOS PDF
+// LÓGICA DE GENERACIÓN DE UN ÚNICO PDF CONSOLIDADO (3 HOJAS)
 // ------------------------------------------------------------
-
-// 1. PDF NOTA DE ELEVACIÓN
-function generarPDFNotaElevacion() {
+function generarPDFUnico() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Título Principal
+    const destino = document.getElementById('destino').value || 'Destino';
+    const fechaSalida = document.getElementById('fechaSalida').value || '';
+
+    // ==========================================
+    // HOJA 1: NOTA DE ELEVACIÓN
+    // ==========================================
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("NOTA DE ELEVACIÓN", 105, 20, { align: "center" });
@@ -436,7 +439,6 @@ function generarPDFNotaElevacion() {
     doc.setFont("helvetica", "normal");
     doc.text("Por la presente se eleva la solicitud y documentación de la Salida Educativa:", 14, 32);
 
-    // Contenido del Paso 1 (sin el archivo de proyecto)
     const datosPaso1 = [
         ["Destino del viaje:", document.getElementById('destino').value || '-'],
         ["Lugar de salida:", document.getElementById('lugarSalida').value || '-'],
@@ -465,32 +467,23 @@ function generarPDFNotaElevacion() {
         columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } }
     });
 
-    // Firma
     const finalY = doc.lastAutoTable.finalY + 35;
     doc.line(120, finalY, 190, finalY);
     doc.text("Firma y Aclaración del Docente / Directivo", 155, finalY + 7, { align: "center" });
 
-    doc.save("Nota_de_Elevacion.pdf");
-}
+    // ==========================================
+    // HOJA 2: NÓMINA DE ESTUDIANTES
+    // ==========================================
+    doc.addPage(); // Segunda hoja
 
-// 2. PDF NÓMINA DE ESTUDIANTES Y DOCENTES
-function generarPDFNomina() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    const destino = document.getElementById('destino').value || 'Destino';
-    const fechaSalida = document.getElementById('fechaSalida').value || '';
-
-    // Encabezado
-    doc.setFontSize(15);
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("NÓMINA DE ESTUDIANTES Y DOCENTES ACOMPAÑANTES", 105, 18, { align: "center" });
-    
+    doc.text("NÓMINA DE ESTUDIANTES SELECCIONADOS", 105, 20, { align: "center" });
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Salida Educativa a: ${destino} | Fecha de salida: ${fechaSalida}`, 105, 25, { align: "center" });
+    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalida}`, 105, 27, { align: "center" });
 
-    // Seccion Estudiantes
     const checkboxes = document.querySelectorAll('.check-estudiante:checked');
     const tablaEstudiantes = [];
 
@@ -514,12 +507,8 @@ function generarPDFNomina() {
         ]);
     });
 
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("1. Estudiantes Seleccionados", 14, 34);
-
     doc.autoTable({
-        startY: 37,
+        startY: 33,
         head: [['#', 'Apellido y Nombre', 'DNI', 'Curso', 'G. Sanguíneo y RH', 'Fecha Nac.']],
         body: tablaEstudiantes,
         theme: 'grid',
@@ -527,7 +516,19 @@ function generarPDFNomina() {
         styles: { fontSize: 8 }
     });
 
-    // Seccion Docentes
+    // ==========================================
+    // HOJA 3: NÓMINA DE ACOMPAÑANTES
+    // ==========================================
+    doc.addPage(); // Tercera hoja
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("NÓMINA DE DOCENTES ACOMPAÑANTES", 105, 20, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalida}`, 105, 27, { align: "center" });
+
     const cardsDocentes = document.querySelectorAll('.card-docente-item');
     const tablaDocentes = [];
 
@@ -545,14 +546,8 @@ function generarPDFNomina() {
         ]);
     });
 
-    const startDocentesY = doc.lastAutoTable.finalY + 12;
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("2. Docentes Acompañantes", 14, startDocentesY);
-
     doc.autoTable({
-        startY: startDocentesY + 3,
+        startY: 33,
         head: [['#', 'Apellido y Nombre', 'DNI', 'Teléfono de Contacto']],
         body: tablaDocentes,
         theme: 'grid',
@@ -560,7 +555,8 @@ function generarPDFNomina() {
         styles: { fontSize: 9 }
     });
 
-    doc.save("Nomina_Estudiantes_y_Docentes.pdf");
+    // Descargar el documento único
+    doc.save("Salida_Educativa_Documentacion_Completa.pdf");
 }
 
 // ------------------------------------------------------------
@@ -618,7 +614,7 @@ inputsValidez.forEach(inputValidez => {
     });
 });
 
-// Al enviar el formulario final, guardamos en base de datos Y descargamos los PDF
+// Guardado final y generación del PDF unificado
 formTransporte.addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -640,11 +636,11 @@ formTransporte.addEventListener('submit', async function(e) {
         const btnSubmit = formTransporte.querySelector('button[type="submit"]');
         const textoOriginal = btnSubmit.innerHTML;
         
-        btnSubmit.innerHTML = "⏳ Guardando datos y generando PDFs...";
+        btnSubmit.innerHTML = "⏳ Guardando datos y generando PDF...";
         btnSubmit.disabled = true;
 
         try {
-            // Recopilar los datos de grupo sanguíneo y nacimiento de TODOS los estudiantes seleccionados
+            // Recopilar los datos de grupo sanguíneo y nacimiento de los estudiantes seleccionados
             const estudiantesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
             const datosAActualizar = [];
 
@@ -662,7 +658,7 @@ formTransporte.addEventListener('submit', async function(e) {
                 }
             });
 
-            // Guardar cambios en la base de datos Vercel
+            // Actualizar en base de datos
             if (datosAActualizar.length > 0) {
                 await fetch('/api/actualizar-estudiantes', {
                     method: 'POST',
@@ -671,11 +667,10 @@ formTransporte.addEventListener('submit', async function(e) {
                 });
             }
 
-            // Generar y descargar automáticamente ambos archivos PDF
-            generarPDFNotaElevacion();
-            generarPDFNomina();
+            // Generar y descargar el único PDF de 3 páginas
+            generarPDFUnico();
 
-            alert("🎉 ¡Excelente! La salida educativa ha sido validada, la base de datos se actualizó y se han descargado ambos PDF en tu dispositivo.");
+            alert("🎉 ¡Excelente! La salida educativa ha sido registrada, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
             location.reload(); 
         } catch(error) {
             console.error("Error al guardar:", error);
