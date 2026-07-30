@@ -152,7 +152,6 @@ function validarEstudiantes() {
     }
 }
 
-// --- VALIDACIÓN OBLIGATORIA DE DATOS MÉDICOS DE ESTUDIANTES ---
 btnSiguienteDocentes.addEventListener('click', function() {
     const checkboxesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
     let datosCompletos = true;
@@ -165,7 +164,6 @@ btnSiguienteDocentes.addEventListener('click', function() {
         const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
 
         if (selectGS && inputFecha) {
-            // Verificamos que no estén vacíos o nulos
             if (!selectGS.value.trim() || !inputFecha.value.trim()) {
                 datosCompletos = false;
                 nombreIncompleto = nombre;
@@ -175,7 +173,7 @@ btnSiguienteDocentes.addEventListener('click', function() {
 
     if (!datosCompletos) {
         alert(`⚠️ No se puede avanzar: El/la estudiante "${nombreIncompleto}" (y posiblemente otros) seleccionado/s tiene incompleto el Grupo Sanguíneo o la Fecha de Nacimiento. Estos datos son obligatorios.`);
-        return; // Detiene el avance al siguiente paso
+        return;
     }
 
     seccion3.classList.remove('d-none');
@@ -393,7 +391,7 @@ agregarSeccionCurso();
 validarEstudiantes();
 
 // ------------------------------------------------------------
-// LÓGICA DEL PASO 3: DOCENTES
+// LÓGICA DEL PASO 3: DOCENTES (ORGANIZADORES Y ACOMPAÑANTES)
 // ------------------------------------------------------------
 const formDocentes = document.getElementById('formDocentes');
 const labelCantDocentes = document.getElementById('labelCantDocentes');
@@ -401,54 +399,116 @@ const contenedorDocentesForm = document.getElementById('contenedorDocentesForm')
 const btnSiguienteTransporte = document.getElementById('btnSiguienteTransporte');
 
 function generarCamposDocentes() {
-    const cant = parseInt(cantAcompanantes.value) || 0;
-    labelCantDocentes.textContent = cant;
+    const cantComp = parseInt(cantAcompanantes.value) || 0;
+    labelCantDocentes.textContent = cantComp;
     contenedorDocentesForm.innerHTML = '';
 
-    if (cant <= 0) {
+    if (cantComp <= 0) {
         contenedorDocentesForm.innerHTML = '<p class="text-danger">Por favor, declare primero la cantidad de acompañantes en el Paso 1.</p>';
         btnSiguienteTransporte.setAttribute('disabled', 'true');
         return;
     }
 
-    for (let i = 1; i <= cant; i++) {
-        const htmlDocente = `
-            <div class="card mb-3 p-3 bg-white border card-docente-item">
-                <h6 class="text-primary fw-bold mb-3">Docente Acompañante #${i}</h6>
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">DNI</label>
-                        <input type="text" class="form-control input-docente input-docente-dni" placeholder="Sin puntos" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">Apellido/s</label>
-                        <input type="text" class="form-control input-docente input-docente-apellido" placeholder="Apellidos" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">Nombres</label>
-                        <input type="text" class="form-control input-docente input-docente-nombre" placeholder="Nombres" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold">Teléfono</label>
-                        <input type="tel" class="form-control input-docente input-docente-telefono" placeholder="Cod. área + nro" required>
-                    </div>
-                </div>
-            </div>
-        `;
-        contenedorDocentesForm.insertAdjacentHTML('beforeend', htmlDocente);
+    // Estructura para Organizadores y Acompañantes
+    let htmlSeccionDocentes = `
+        <div class="mb-4">
+            <h5 class="text-primary fw-bold border-bottom pb-2">Docente/s Organizador/es</h5>
+            <div id="contenedorOrganizadores"></div>
+            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="agregarOrganizador()">
+                ➕ Agregar otro organizador
+            </button>
+        </div>
+        <div class="mb-3">
+            <h5 class="text-secondary fw-bold border-bottom pb-2">Docentes Acompañantes (${cantComp} declarados)</h5>
+            <div id="contenedorAcompanantes"></div>
+        </div>
+    `;
+
+    contenedorDocentesForm.innerHTML = htmlSeccionDocentes;
+
+    // Agregar el primer organizador por defecto
+    agregarOrganizador();
+
+    // Generar los acompañantes según cantAcompanantes
+    const contenedorAcomp = document.getElementById('contenedorAcompanantes');
+    for (let i = 1; i <= cantComp; i++) {
+        contenedorAcomp.innerHTML += crearCardDocente(`Docente Acompañante #${i}`, 'acompanante');
     }
 
-    const inputsDocentes = document.querySelectorAll('.input-docente');
-    inputsDocentes.forEach(input => {
-        input.addEventListener('input', validarDocentes);
-    });
+    configurarListenersDocentes();
+}
 
+function crearCardDocente(titulo, tipo) {
+    return `
+        <div class="card mb-3 p-3 bg-white border card-docente-item" data-tipo="${tipo}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="text-primary fw-bold mb-0">${titulo}</h6>
+                ${tipo === 'organizador' ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.card-docente-item').remove(); validarDocentes();">🗑️ Eliminar</button>` : ''}
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">DNI</label>
+                    <input type="text" class="form-control input-docente input-docente-dni" placeholder="Sin puntos" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Apellido/s</label>
+                    <input type="text" class="form-control input-docente input-docente-apellido" placeholder="Apellidos" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Nombres</label>
+                    <input type="text" class="form-control input-docente input-docente-nombre" placeholder="Nombres" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Teléfono de Contacto</label>
+                    <input type="tel" class="form-control input-docente input-docente-telefono" placeholder="Cod. área + nro" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">G. Sanguíneo y RH</label>
+                    <select class="form-select form-select-sm input-docente-gs" required>
+                        <option value="">- Seleccionar -</option>
+                        <option value="A +">A +</option>
+                        <option value="A -">A -</option>
+                        <option value="B +">B +</option>
+                        <option value="B -">B -</option>
+                        <option value="AB +">AB +</option>
+                        <option value="AB -">AB -</option>
+                        <option value="O +">O +</option>
+                        <option value="O -">O -</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Tel. Emergencia</label>
+                    <input type="tel" class="form-control input-docente input-docente-emergencia" placeholder="Cod. área + nro" required>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function agregarOrganizador() {
+    const contenedorOrg = document.getElementById('contenedorOrganizadores');
+    if (!contenedorOrg) return;
+    const numOrg = contenedorOrg.querySelectorAll('.card-docente-item').length + 1;
+    const html = crearCardDocente(`Docente Organizador #${numOrg}`, 'organizador');
+    contenedorOrg.insertAdjacentHTML('beforeend', html);
+    configurarListenersDocentes();
+}
+
+function configurarListenersDocentes() {
+    const inputsDocentes = document.querySelectorAll('.input-docente, .input-docente-gs');
+    inputsDocentes.forEach(input => {
+        input.removeEventListener('input', validarDocentes);
+        input.removeEventListener('change', validarDocentes);
+        input.addEventListener('input', validarDocentes);
+        input.addEventListener('change', validarDocentes);
+    });
     validarDocentes();
 }
 
 function validarDocentes() {
     let todoCompleto = true;
     const inputsDocentes = document.querySelectorAll('.input-docente');
+    const selectsGs = document.querySelectorAll('.input-docente-gs');
     
     if (inputsDocentes.length === 0) {
         btnSiguienteTransporte.setAttribute('disabled', 'true');
@@ -457,6 +517,12 @@ function validarDocentes() {
 
     inputsDocentes.forEach(input => {
         if (!input.value.trim()) {
+            todoCompleto = false;
+        }
+    });
+
+    selectsGs.forEach(select => {
+        if (!select.value) {
             todoCompleto = false;
         }
     });
@@ -602,13 +668,13 @@ function generarPDFUnico() {
     });
 
     // ==========================================
-    // HOJA 3: NÓMINA DE ACOMPAÑANTES
+    // HOJA 3: NÓMINA DE ORGANIZADORES Y ACOMPAÑANTES
     // ==========================================
     doc.addPage(); 
 
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("NÓMINA DE DOCENTES ACOMPAÑANTES", 105, 20, { align: "center" });
+    doc.text("NÓMINA DE ORGANIZADORES Y DOCENTES ACOMPAÑANTES", 105, 20, { align: "center" });
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -618,26 +684,32 @@ function generarPDFUnico() {
     const tablaDocentes = [];
 
     cardsDocentes.forEach((card, index) => {
+        const tipo = card.getAttribute('data-tipo') === 'organizador' ? 'ORGANIZADOR' : 'ACOMPAÑANTE';
         const dni = card.querySelector('.input-docente-dni')?.value || '-';
         const apellido = (card.querySelector('.input-docente-apellido')?.value || '').toUpperCase();
         const nombre = (card.querySelector('.input-docente-nombre')?.value || '').toUpperCase();
         const telefono = card.querySelector('.input-docente-telefono')?.value || '-';
+        const gs = (card.querySelector('.input-docente-gs')?.value || 'NO ESPECIFICADO').toUpperCase();
+        const emergencia = card.querySelector('.input-docente-emergencia')?.value || '-';
 
         tablaDocentes.push([
             index + 1,
+            tipo,
             `${apellido}, ${nombre}`,
             dni,
-            telefono
+            telefono,
+            gs,
+            emergencia
         ]);
     });
 
     doc.autoTable({
         startY: 33,
-        head: [['#', 'Apellido y Nombre', 'DNI', 'Teléfono de Contacto']],
+        head: [['#', 'Rol', 'Apellido y Nombre', 'DNI', 'Teléfono', 'G. Sanguíneo', 'Tel. Emergencia']],
         body: tablaDocentes,
         theme: 'grid',
         headStyles: { fillColor: [13, 202, 240] },
-        styles: { fontSize: 9 }
+        styles: { fontSize: 7.5 }
     });
 
     doc.save("Salida_Educativa_Documentacion_Completa.pdf");
