@@ -398,52 +398,70 @@ const labelCantDocentes = document.getElementById('labelCantDocentes');
 const contenedorDocentesForm = document.getElementById('contenedorDocentesForm');
 const btnSiguienteTransporte = document.getElementById('btnSiguienteTransporte');
 
+let cantidadOrganizadoresActual = 1;
+
 function generarCamposDocentes() {
-    const cantComp = parseInt(cantAcompanantes.value) || 0;
-    labelCantDocentes.textContent = cantComp;
+    const cantTotalDeclarada = parseInt(cantAcompanantes.value) || 0;
+    labelCantDocentes.textContent = cantTotalDeclarada;
     contenedorDocentesForm.innerHTML = '';
 
-    if (cantComp <= 0) {
-        contenedorDocentesForm.innerHTML = '<p class="text-danger">Por favor, declare primero la cantidad de acompañantes en el Paso 1.</p>';
+    if (cantTotalDeclarada <= 0) {
+        contenedorDocentesForm.innerHTML = '<p class="text-danger">Por favor, declare primero la cantidad total de acompañantes en el Paso 1.</p>';
         btnSiguienteTransporte.setAttribute('disabled', 'true');
         return;
     }
 
-    // Estructura para Organizadores y Acompañantes
+    if (cantidadOrganizadoresActual > cantTotalDeclarada) {
+        cantidadOrganizadoresActual = cantTotalDeclarada;
+    }
+    if (cantidadOrganizadoresActual < 1) {
+        cantidadOrganizadoresActual = 1;
+    }
+
+    const cantAcompanantesRegulares = cantTotalDeclarada - cantidadOrganizadoresActual;
+
     let htmlSeccionDocentes = `
         <div class="mb-4">
-            <h5 class="text-primary fw-bold border-bottom pb-2">Docente/s Organizador/es</h5>
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h5 class="text-primary fw-bold mb-0">Docente/s Organizador/es</h5>
+                ${cantidadOrganizadoresActual < cantTotalDeclarada ? `
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="cambiarOrganizadores(1)">
+                        ➕ Agregar otro organizador
+                    </button>` : ''}
+            </div>
             <div id="contenedorOrganizadores"></div>
-            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="agregarOrganizador()">
-                ➕ Agregar otro organizador
-            </button>
         </div>
         <div class="mb-3">
-            <h5 class="text-secondary fw-bold border-bottom pb-2">Docentes Acompañantes (${cantComp} declarados)</h5>
-            <div id="contenedorAcompanantes"></div>
+            <h5 class="text-secondary fw-bold border-bottom pb-2 mb-3">Docentes Acompañantes (${cantAcompanantesRegulares})</h5>
+            <div id="contenedorAcompanantes">
+                ${cantAcompanantesRegulares === 0 ? '<p class="text-muted fst-italic">No hay docentes acompañantes adicionales (todos los cupos declarados están cubiertos por los organizadores).</p>' : ''}
+            </div>
         </div>
     `;
 
     contenedorDocentesForm.innerHTML = htmlSeccionDocentes;
 
-    // Agregar el primer organizador por defecto
-    agregarOrganizador();
+    // Renderizar Organizadores
+    const contenedorOrg = document.getElementById('contenedorOrganizadores');
+    for (let i = 1; i <= cantidadOrganizadoresActual; i++) {
+        contenedorOrg.innerHTML += crearCardDocente(`Docente Organizador #${i}`, 'organizador', i > 1);
+    }
 
-    // Generar los acompañantes según cantAcompanantes
+    // Renderizar Acompañantes Regulares
     const contenedorAcomp = document.getElementById('contenedorAcompanantes');
-    for (let i = 1; i <= cantComp; i++) {
-        contenedorAcomp.innerHTML += crearCardDocente(`Docente Acompañante #${i}`, 'acompanante');
+    for (let i = 1; i <= cantAcompanantesRegulares; i++) {
+        contenedorAcomp.innerHTML += crearCardDocente(`Docente Acompañante #${i}`, 'acompanante', false);
     }
 
     configurarListenersDocentes();
 }
 
-function crearCardDocente(titulo, tipo) {
+function crearCardDocente(titulo, tipo, esRemovible) {
     return `
         <div class="card mb-3 p-3 bg-white border card-docente-item" data-tipo="${tipo}">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="text-primary fw-bold mb-0">${titulo}</h6>
-                ${tipo === 'organizador' ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.card-docente-item').remove(); validarDocentes();">🗑️ Eliminar</button>` : ''}
+                ${esRemovible ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="cambiarOrganizadores(-1)">🗑️ Eliminar</button>` : ''}
             </div>
             <div class="row">
                 <div class="col-md-4 mb-3">
@@ -485,13 +503,12 @@ function crearCardDocente(titulo, tipo) {
     `;
 }
 
-function agregarOrganizador() {
-    const contenedorOrg = document.getElementById('contenedorOrganizadores');
-    if (!contenedorOrg) return;
-    const numOrg = contenedorOrg.querySelectorAll('.card-docente-item').length + 1;
-    const html = crearCardDocente(`Docente Organizador #${numOrg}`, 'organizador');
-    contenedorOrg.insertAdjacentHTML('beforeend', html);
-    configurarListenersDocentes();
+function cambiarOrganizadores(delta) {
+    const cantTotalDeclarada = parseInt(cantAcompanantes.value) || 0;
+    cantidadOrganizadoresActual += delta;
+    if (cantidadOrganizadoresActual < 1) cantidadOrganizadoresActual = 1;
+    if (cantidadOrganizadoresActual > cantTotalDeclarada) cantidadOrganizadoresActual = cantTotalDeclarada;
+    generarCamposDocentes();
 }
 
 function configurarListenersDocentes() {
