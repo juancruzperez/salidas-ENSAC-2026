@@ -17,85 +17,87 @@ const tablaResumenesEjecutivos = document.getElementById('tablaResumenesEjecutiv
 
 let usuarioActual = null;
 
-formLogin.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    alertaLogin.classList.add('d-none');
+if (formLogin) {
+    formLogin.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        alertaLogin.classList.add('d-none');
 
-    try {
-        const respuesta = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: loginUser.value.trim(),
-                password: loginPass.value.trim()
-            })
-        });
+        try {
+            const respuesta = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: loginUser.value.trim(),
+                    password: loginPass.value.trim()
+                })
+            });
 
-        const data = await respuesta.json();
+            const data = await respuesta.json();
 
-        if (!respuesta.ok) {
-            throw new Error(data.error || 'Credenciales inválidas');
+            if (!respuesta.ok) {
+                throw new Error(data.error || 'Credenciales inválidas');
+            }
+
+            usuarioActual = data.user;
+            localStorage.setItem('usuarioSesion', JSON.stringify(usuarioActual));
+            controlarPermisos(usuarioActual);
+
+        } catch (error) {
+            alertaLogin.textContent = error.message;
+            alertaLogin.classList.remove('d-none');
         }
-
-        usuarioActual = data.user;
-        localStorage.setItem('usuarioSesion', JSON.stringify(usuarioActual));
-        controlarPermisos(usuarioActual);
-
-    } catch (error) {
-        alertaLogin.textContent = error.message;
-        alertaLogin.classList.remove('d-none');
-    }
-});
+    });
+}
 
 function controlarPermisos(user) {
-    seccionLogin.classList.add('d-none');
+    if (seccionLogin) seccionLogin.classList.add('d-none');
 
     if (user.role === 'secretaria' || user.role === 'direccion') {
-        vistaInformeEjecutivo.classList.remove('d-none');
-        spanRolEjecutivo.textContent = user.role.toUpperCase();
+        if (vistaInformeEjecutivo) vistaInformeEjecutivo.classList.remove('d-none');
+        if (spanRolEjecutivo) spanRolEjecutivo.textContent = user.role.toUpperCase();
         cargarInformeEjecutivo();
     } else if (user.role === 'admin') {
-        // Admin ve por defecto la carga, pero tiene los botones de navegación
-        adminNavContainerCarga.classList.remove('d-none');
-        contenedorPrincipal.classList.remove('d-none');
-        spanUsuarioRol.textContent = `${user.username.toUpperCase()} (ADMIN)`;
+        if (adminNavContainerCarga) adminNavContainerCarga.classList.remove('d-none');
+        if (contenedorPrincipal) contenedorPrincipal.classList.remove('d-none');
+        if (spanUsuarioRol) spanUsuarioRol.textContent = `${user.username.toUpperCase()} (ADMIN)`;
     } else {
-        // Docente (usuario final)
-        contenedorPrincipal.classList.remove('d-none');
-        spanUsuarioRol.textContent = `${user.username.toUpperCase()} (DOCENTE)`;
+        if (contenedorPrincipal) contenedorPrincipal.classList.remove('d-none');
+        if (spanUsuarioRol) spanUsuarioRol.textContent = `${user.username.toUpperCase()} (DOCENTE)`;
     }
 }
 
 function cambiarVistaAdmin(vista) {
     if (vista === 'informe') {
-        contenedorPrincipal.classList.add('d-none');
-        vistaInformeEjecutivo.classList.remove('d-none');
-        spanRolEjecutivo.textContent = "ADMINISTRADOR (VISTA INFORME)";
-        adminNavContainer.classList.remove('d-none');
+        if (contenedorPrincipal) contenedorPrincipal.classList.add('d-none');
+        if (vistaInformeEjecutivo) vistaInformeEjecutivo.classList.remove('d-none');
+        if (spanRolEjecutivo) spanRolEjecutivo.textContent = "ADMINISTRADOR (VISTA INFORME)";
+        if (adminNavContainer) adminNavContainer.classList.remove('d-none');
         cargarInformeEjecutivo();
     } else {
-        vistaInformeEjecutivo.classList.add('d-none');
-        contenedorPrincipal.classList.remove('d-none');
-        adminNavContainerCarga.classList.remove('d-none');
+        if (vistaInformeEjecutivo) vistaInformeEjecutivo.classList.add('d-none');
+        if (contenedorPrincipal) contenedorPrincipal.classList.remove('d-none');
+        if (adminNavContainerCarga) adminNavContainerCarga.classList.remove('d-none');
     }
 }
 
 async function cargarInformeEjecutivo() {
-    tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Cargando salidas registradas...</td></tr>';
+    if (!tablaResumenesEjecutivos) return;
+    tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Cargando salidas registradas...</td></tr>';
     try {
         const respuesta = await fetch('/api/salidas');
         const salidas = await respuesta.json();
 
         tablaResumenesEjecutivos.innerHTML = '';
         if (salidas.length > 0) {
-            salidas.forEach((s, index) => {
+            salidas.forEach((s) => {
                 const modalidad = s.es_pernocte ? 'CON PERNOCTE' : 'SIN PERNOCTE';
                 const fila = `
                     <tr>
                         <td>#${s.id}</td>
+                        <td><strong>${s.docente_organizador || 'No especificado'}</strong></td>
                         <td><strong>${s.destino}</strong></td>
-                        <td>${s.fecha_salida.split('T')[0]} (${s.hora_salida})</td>
-                        <td>${s.fecha_regreso.split('T')[0]} (${s.hora_regreso})</td>
+                        <td>${s.fecha_salida ? s.fecha_salida.split('T')[0] : '-'} (${s.hora_salida})</td>
+                        <td>${s.fecha_regreso ? s.fecha_regreso.split('T')[0] : '-'} (${s.hora_regreso})</td>
                         <td><span class="badge bg-info text-dark">${modalidad}</span></td>
                         <td>${s.cant_estudiantes}</td>
                         <td>${s.cant_acompanantes}</td>
@@ -105,11 +107,11 @@ async function cargarInformeEjecutivo() {
                 tablaResumenesEjecutivos.innerHTML += fila;
             });
         } else {
-            tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay salidas registradas actualmente.</td></tr>';
+            tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No hay salidas registradas actualmente.</td></tr>';
         }
     } catch (error) {
         console.error("Error al cargar informe:", error);
-        tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al conectar con la base de datos.</td></tr>';
+        tablaResumenesEjecutivos.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error al conectar con la base de datos.</td></tr>';
     }
 }
 
@@ -157,14 +159,14 @@ const camposDestinoExtra = document.getElementById('camposDestinoExtra');
 const inputsDestinoExtra = document.querySelectorAll('.input-destino-extra');
 
 function manejarSalidaLocal() {
-    if (checkboxSalidaLocal.checked) {
-        camposDestinoExtra.classList.add('d-none');
+    if (checkboxSalidaLocal && checkboxSalidaLocal.checked) {
+        if (camposDestinoExtra) camposDestinoExtra.classList.add('d-none');
         inputsDestinoExtra.forEach(input => {
             input.required = false;
             input.value = '';
         });
     } else {
-        camposDestinoExtra.classList.remove('d-none');
+        if (camposDestinoExtra) camposDestinoExtra.classList.remove('d-none');
         inputsDestinoExtra.forEach(input => {
             input.required = true;
         });
@@ -181,17 +183,19 @@ function validarCantidades() {
 
     if (numEstudiantes > 0) {
         const minimoAcompanantes = Math.ceil(numEstudiantes / 10);
-        cantAcompanantes.min = minimoAcompanantes;
+        if (cantAcompanantes) cantAcompanantes.min = minimoAcompanantes;
 
         if (numAcompanantes > 0 && numAcompanantes < minimoAcompanantes) {
-            alertaAcompanantes.textContent = `Mínimo requerido: ${minimoAcompanantes} (1 cada 10 estudiantes).`;
-            alertaAcompanantes.classList.remove('d-none');
+            if (alertaAcompanantes) {
+                alertaAcompanantes.textContent = `Mínimo requerido: ${minimoAcompanantes} (1 cada 10 estudiantes).`;
+                alertaAcompanantes.classList.remove('d-none');
+            }
         } else {
-            alertaAcompanantes.classList.add('d-none');
+            if (alertaAcompanantes) alertaAcompanantes.classList.add('d-none');
         }
     } else {
-        cantAcompanantes.min = 1;
-        alertaAcompanantes.classList.add('d-none');
+        if (cantAcompanantes) cantAcompanantes.min = 1;
+        if (alertaAcompanantes) alertaAcompanantes.classList.add('d-none');
     }
     validarEstudiantes();
     generarCamposDocentes();
@@ -203,40 +207,46 @@ if (formGestion) {
 }
 
 function manejarPernocte() {
-    if (checkboxSinPernocte.checked) {
-        inputFechaRegreso.value = inputFechaSalida.value;
-        inputFechaRegreso.readOnly = true;
-        inputFechaRegreso.classList.add('bg-light', 'text-muted');
-        seccionAlojamiento.style.display = 'none';
+    if (checkboxSinPernocte && checkboxSinPernocte.checked) {
+        if (inputFechaRegreso) {
+            inputFechaRegreso.value = inputFechaSalida.value;
+            inputFechaRegreso.readOnly = true;
+            inputFechaRegreso.classList.add('bg-light', 'text-muted');
+        }
+        if (seccionAlojamiento) seccionAlojamiento.style.display = 'none';
         inputsAlojamiento.forEach(input => { input.required = false; input.value = ''; });
     } else {
-        inputFechaRegreso.readOnly = false;
-        inputFechaRegreso.classList.remove('bg-light', 'text-muted');
-        seccionAlojamiento.style.display = 'block';
+        if (inputFechaRegreso) {
+            inputFechaRegreso.readOnly = false;
+            inputFechaRegreso.classList.remove('bg-light', 'text-muted');
+        }
+        if (seccionAlojamiento) seccionAlojamiento.style.display = 'block';
         inputsAlojamiento.forEach(input => input.required = true);
     }
-    if (inputFechaSalida.value) {
+    if (inputFechaSalida && inputFechaSalida.value && inputFechaRegreso) {
         inputFechaRegreso.min = inputFechaSalida.value;
     }
 }
 
 if (checkboxSinPernocte) {
     checkboxSinPernocte.addEventListener('change', manejarPernocte);
-    inputFechaSalida.addEventListener('change', function() {
-        manejarPernocte();
-    });
+    if (inputFechaSalida) {
+        inputFechaSalida.addEventListener('change', function() {
+            manejarPernocte();
+        });
+    }
     manejarPernocte();
 }
 
 if (btnSiguienteEstudiantes) {
     btnSiguienteEstudiantes.addEventListener('click', function() {
-        const fSalida = inputFechaSalida.value;
-        const fRegreso = inputFechaRegreso.value;
-        const hSalida = inputHoraSalida.value;
-        const hRegreso = inputHoraRegreso.value;
+        const fSalida = inputFechaSalida ? inputFechaSalida.value : '';
+        const fRegreso = inputFechaRegreso ? inputFechaRegreso.value : '';
+        const hSalida = inputHoraSalida ? inputHoraSalida.value : '';
+        const hRegreso = inputHoraRegreso ? inputHoraRegreso.value : '';
 
         if (fSalida && fRegreso) {
-            if (!checkboxSinPernocte.checked && fRegreso < fSalida) {
+            if (checkboxSinPernocte && !checkboxSinPernocte.checked && fRegreso < fSalida) {
                 alert("⚠️ La fecha de regreso no puede ser anterior a la fecha de salida.");
                 return;
             }
@@ -248,13 +258,15 @@ if (btnSiguienteEstudiantes) {
             }
         }
 
-        if (!formGestion.checkValidity()) {
+        if (formGestion && !formGestion.checkValidity()) {
             formGestion.classList.add('was-validated');
             alert("⚠️ Por favor, completa todos los campos obligatorios en el Paso 1.");
         } else {
-            formGestion.classList.remove('was-validated');
-            seccion2.classList.remove('d-none');
-            seccion2.scrollIntoView();
+            if (formGestion) formGestion.classList.remove('was-validated');
+            if (seccion2) {
+                seccion2.classList.remove('d-none');
+                seccion2.scrollIntoView();
+            }
         }
     });
 }
@@ -269,7 +281,7 @@ const textoContadorEstudiantes = document.getElementById('textoContadorEstudiant
 const btnSiguienteDocentes = document.getElementById('btnSiguienteDocentes');
 
 function validarEstudiantes() {
-    const declarados = parseInt(cantEstudiantes.value) || 0;
+    const declarados = parseInt(cantEstudiantes ? cantEstudiantes.value : 0) || 0;
     const seleccionados = document.querySelectorAll('.check-estudiante:checked').length;
 
     if (textoContadorEstudiantes) {
@@ -316,8 +328,10 @@ if (btnSiguienteDocentes) {
             return;
         }
 
-        seccion3.classList.remove('d-none');
-        seccion3.scrollIntoView();
+        if (seccion3) {
+            seccion3.classList.remove('d-none');
+            seccion3.scrollIntoView();
+        }
         generarCamposDocentes();
     });
 }
@@ -431,9 +445,9 @@ async function buscarAlumnosPorCurso(idCurso) {
     const contenedorTabla = document.getElementById(`contenedorTabla_${idCurso}`);
     const mensajeSinResultados = document.getElementById(`mensajeSinResultados_${idCurso}`);
 
-    cuerpoTabla.innerHTML = '<tr><td colspan="5" class="text-center">Buscando en la base de datos...</td></tr>';
-    contenedorTabla.classList.remove('d-none');
-    mensajeSinResultados.classList.add('d-none');
+    if (cuerpoTabla) cuerpoTabla.innerHTML = '<tr><td colspan="5" class="text-center">Buscando en la base de datos...</td></tr>';
+    if (contenedorTabla) contenedorTabla.classList.remove('d-none');
+    if (mensajeSinResultados) mensajeSinResultados.classList.add('d-none');
 
     try {
         const respuesta = await fetch(`/api/estudiantes?turno=${encodeURIComponent(turno)}&ano=${encodeURIComponent(ano)}&division=${encodeURIComponent(division)}&ciclo=${encodeURIComponent(ciclo)}`);
@@ -443,11 +457,11 @@ async function buscarAlumnosPorCurso(idCurso) {
         }
 
         const alumnosFiltrados = await respuesta.json();
-        cuerpoTabla.innerHTML = '';
+        if (cuerpoTabla) cuerpoTabla.innerHTML = '';
 
         if (alumnosFiltrados.length > 0) {
-            mensajeSinResultados.classList.add('d-none');
-            contenedorTabla.classList.remove('d-none');
+            if (mensajeSinResultados) mensajeSinResultados.classList.add('d-none');
+            if (contenedorTabla) contenedorTabla.classList.remove('d-none');
 
             alumnosFiltrados.forEach(alumno => {
                 const gsGuardado = (alumno.grupo_sanguineo || '').trim();
@@ -487,16 +501,16 @@ async function buscarAlumnosPorCurso(idCurso) {
                         </td>
                     </tr>
                 `;
-                cuerpoTabla.innerHTML += fila;
+                if (cuerpoTabla) cuerpoTabla.innerHTML += fila;
             });
         } else {
-            contenedorTabla.classList.add('d-none');
-            mensajeSinResultados.classList.remove('d-none');
+            if (contenedorTabla) contenedorTabla.classList.add('d-none');
+            if (mensajeSinResultados) mensajeSinResultados.classList.remove('d-none');
         }
     } catch (error) {
         console.error("Error al consultar los estudiantes:", error);
         alert("⚠️ Hubo un error al conectar con la base de datos.");
-        contenedorTabla.classList.add('d-none');
+        if (contenedorTabla) contenedorTabla.classList.add('d-none');
     }
 
     validarEstudiantes();
@@ -546,7 +560,7 @@ const btnSiguienteTransporte = document.getElementById('btnSiguienteTransporte')
 let cantidadOrganizadoresActual = 1;
 
 function generarCamposDocentes() {
-    const cantTotalDeclarada = parseInt(cantAcompanantes.value) || 0;
+    const cantTotalDeclarada = parseInt(cantAcompanantes ? cantAcompanantes.value : 0) || 0;
     if (!contenedorDocentesForm) return;
     contenedorDocentesForm.innerHTML = '';
 
@@ -588,12 +602,12 @@ function generarCamposDocentes() {
 
     const contenedorOrg = document.getElementById('contenedorOrganizadores');
     for (let i = 1; i <= cantidadOrganizadoresActual; i++) {
-        contenedorOrg.innerHTML += crearCardDocente(`Docente Organizador #${i}`, 'organizador', i > 1);
+        if (contenedorOrg) contenedorOrg.innerHTML += crearCardDocente(`Docente Organizador #${i}`, 'organizador', i > 1);
     }
 
     const contenedorAcomp = document.getElementById('contenedorAcompanantes');
     for (let i = 1; i <= cantAcompanantesRegulares; i++) {
-        contenedorAcomp.innerHTML += crearCardDocente(`Docente Acompañante #${i}`, 'acompanante', false);
+        if (contenedorAcomp) contenedorAcomp.innerHTML += crearCardDocente(`Docente Acompañante #${i}`, 'acompanante', false);
     }
 
     configurarListenersDocentes();
@@ -647,7 +661,7 @@ function crearCardDocente(titulo, tipo, esRemovible) {
 }
 
 function cambiarOrganizadores(delta) {
-    const cantTotalDeclarada = parseInt(cantAcompanantes.value) || 0;
+    const cantTotalDeclarada = parseInt(cantAcompanantes ? cantAcompanantes.value : 0) || 0;
     cantidadOrganizadoresActual += delta;
     if (cantidadOrganizadoresActual < 1) cantidadOrganizadoresActual = 1;
     if (cantidadOrganizadoresActual > cantTotalDeclarada) cantidadOrganizadoresActual = cantTotalDeclarada;
@@ -696,8 +710,10 @@ function validarDocentes() {
 
 if (btnSiguienteTransporte) {
     btnSiguienteTransporte.addEventListener('click', function() {
-        seccion4.classList.remove('d-none');
-        seccion4.scrollIntoView();
+        if (seccion4) {
+            seccion4.classList.remove('d-none');
+            seccion4.scrollIntoView();
+        }
     });
 }
 
@@ -712,13 +728,14 @@ function formatearFechaDDMMAAAA(fechaISO) {
 }
 
 function obtenerDestinoFormateado() {
-    const destinoBase = (document.getElementById('destino').value || 'DESTINO').trim();
-    if (document.getElementById('salidaLocal').checked) {
+    const destinoBase = (document.getElementById('destino') ? document.getElementById('destino').value : 'DESTINO').trim();
+    const salidaLocalCheck = document.getElementById('salidaLocal');
+    if (salidaLocalCheck && salidaLocalCheck.checked) {
         return `${destinoBase} - CÓRDOBA`.toUpperCase();
     } else {
-        const pais = (document.getElementById('paisDestino').value || '').trim();
-        const provincia = (document.getElementById('provinciaDestino').value || '').trim();
-        const ciudad = (document.getElementById('ciudadDestino').value || '').trim();
+        const pais = (document.getElementById('paisDestino') ? document.getElementById('paisDestino').value : '').trim();
+        const provincia = (document.getElementById('provinciaDestino') ? document.getElementById('provinciaDestino').value : '').trim();
+        const ciudad = (document.getElementById('ciudadDestino') ? document.getElementById('ciudadDestino').value : '').trim();
         return `${destinoBase} - ${ciudad}, ${provincia}, ${pais}`.toUpperCase();
     }
 }
@@ -728,7 +745,7 @@ function generarPDFUnico() {
     const doc = new jsPDF();
 
     const destinoFinalFormateado = obtenerDestinoFormateado();
-    const fechaSalidaIso = document.getElementById('fechaSalida').value || '';
+    const fechaSalidaIso = document.getElementById('fechaSalida') ? document.getElementById('fechaSalida').value : '';
     const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
 
     // ==========================================
@@ -742,24 +759,24 @@ function generarPDFUnico() {
     doc.setFont("helvetica", "normal");
     doc.text("Por la presente se eleva la solicitud y documentación de la Salida Educativa:", 14, 32);
 
-    const modalidad = checkboxSinPernocte.checked ? "SIN PERNOCTE (IDA Y VUELTA EN EL DÍA)" : "CON PERNOCTE";
+    const modalidad = checkboxSinPernocte && checkboxSinPernocte.checked ? "SIN PERNOCTE (IDA Y VUELTA EN EL DÍA)" : "CON PERNOCTE";
     
     const datosPaso1 = [
         ["Destino del viaje:", destinoFinalFormateado],
-        ["Lugar de salida:", (document.getElementById('lugarSalida').value || '-').toUpperCase()],
-        ["Lugar de regreso:", (document.getElementById('lugarRegreso').value || '-').toUpperCase()],
-        ["Cantidad de estudiantes:", document.getElementById('cantEstudiantes').value || '-'],
-        ["Cantidad de acompañantes:", document.getElementById('cantAcompanantes').value || '-'],
+        ["Lugar de salida:", (document.getElementById('lugarSalida') ? document.getElementById('lugarSalida').value : '-').toUpperCase()],
+        ["Lugar de regreso:", (document.getElementById('lugarRegreso') ? document.getElementById('lugarRegreso').value : '-').toUpperCase()],
+        ["Cantidad de estudiantes:", document.getElementById('cantEstudiantes') ? document.getElementById('cantEstudiantes').value : '-'],
+        ["Cantidad de acompañantes:", document.getElementById('cantAcompanantes') ? document.getElementById('cantAcompanantes').value : '-'],
         ["Modalidad de viaje:", modalidad],
-        ["Fecha de salida:", `${fechaSalidaFormat} (${document.getElementById('horaSalida').value || '-'} HS)`],
-        ["Fecha de regreso:", `${formatearFechaDDMMAAAA(document.getElementById('fechaRegreso').value)} (${document.getElementById('horaRegreso').value || '-'} HS)`]
+        ["Fecha de salida:", `${fechaSalidaFormat} (${document.getElementById('horaSalida') ? document.getElementById('horaSalida').value : '-'} HS)`],
+        ["Fecha de regreso:", `${formatearFechaDDMMAAAA(document.getElementById('fechaRegreso') ? document.getElementById('fechaRegreso').value : '')} (${document.getElementById('horaRegreso') ? document.getElementById('horaRegreso').value : '-'} HS)`]
     ];
 
-    if (!checkboxSinPernocte.checked) {
+    if (checkboxSinPernocte && !checkboxSinPernocte.checked) {
         datosPaso1.push(
-            ["Nombre del alojamiento:", (document.getElementById('nombreAlojamiento').value || '-').toUpperCase()],
-            ["Domicilio del alojamiento:", (document.getElementById('domicilioAlojamiento').value || '-').toUpperCase()],
-            ["Teléfono del alojamiento:", (document.getElementById('telefonoAlojamiento').value || '-').toUpperCase()]
+            ["Nombre del alojamiento:", (document.getElementById('nombreAlojamiento') ? document.getElementById('nombreAlojamiento').value : '-').toUpperCase()],
+            ["Domicilio del alojamiento:", (document.getElementById('domicilioAlojamiento') ? document.getElementById('domicilioAlojamiento').value : '-').toUpperCase()],
+            ["Teléfono del alojamiento:", (document.getElementById('telefonoAlojamiento') ? document.getElementById('telefonoAlojamiento').value : '-').toUpperCase()]
         );
     }
 
@@ -885,8 +902,8 @@ const inputsValidez = document.querySelectorAll('.input-validez');
 const formTransporte = document.getElementById('formTransporte');
 
 function manejarSinTransporte() {
-    if (sinTransporte.checked) {
-        camposTransporte.style.display = 'none';
+    if (sinTransporte && sinTransporte.checked) {
+        if (camposTransporte) camposTransporte.style.display = 'none';
         inputsTransporte.forEach(input => {
             input.required = false;
             input.value = ''; 
@@ -894,10 +911,10 @@ function manejarSinTransporte() {
         inputsValidez.forEach(input => {
             input.required = false;
             input.value = '';
-            input.nextElementSibling.classList.add('d-none');
+            if (input.nextElementSibling) input.nextElementSibling.classList.add('d-none');
         });
     } else {
-        camposTransporte.style.display = 'block';
+        if (camposTransporte) camposTransporte.style.display = 'block';
         inputsTransporte.forEach(input => {
             input.required = true;
         });
@@ -913,11 +930,11 @@ if (sinTransporte) {
 
 inputsValidez.forEach(inputValidez => {
     inputValidez.addEventListener('change', function() {
-        const fechaViajeStr = inputFechaSalida.value;
+        const fechaViajeStr = inputFechaSalida ? inputFechaSalida.value : '';
         const fechaValidezStr = this.value;
         const alerta = this.nextElementSibling; 
 
-        if (fechaViajeStr && fechaValidezStr) {
+        if (fechaViajeStr && fechaValidezStr && alerta) {
             const fechaViaje = new Date(fechaViajeStr);
             const fechaValidez = new Date(fechaValidezStr);
 
@@ -926,7 +943,7 @@ inputsValidez.forEach(inputValidez => {
             } else {
                 alerta.classList.add('d-none');
             }
-        } else {
+        } else if (alerta) {
             alerta.classList.add('d-none');
         }
     });
@@ -937,7 +954,7 @@ if (formTransporte) {
         e.preventDefault();
         
         let hayDocumentosVencidos = false;
-        if (!sinTransporte.checked) {
+        if (sinTransporte && !sinTransporte.checked) {
             document.querySelectorAll('.alerta-vencido').forEach(alerta => {
                 if (!alerta.classList.contains('d-none')) {
                     hayDocumentosVencidos = true;
@@ -952,10 +969,12 @@ if (formTransporte) {
 
         if (formTransporte.checkValidity()) {
             const btnSubmit = formTransporte.querySelector('button[type="submit"]');
-            const textoOriginal = btnSubmit.innerHTML;
+            const textoOriginal = btnSubmit ? btnSubmit.innerHTML : '';
             
-            btnSubmit.innerHTML = "⏳ Guardando datos y generando PDF...";
-            btnSubmit.disabled = true;
+            if (btnSubmit) {
+                btnSubmit.innerHTML = "⏳ Guardando datos y generando PDF...";
+                btnSubmit.disabled = true;
+            }
 
             try {
                 // 1. Guardar datos médicos de estudiantes en base de datos
@@ -984,20 +1003,33 @@ if (formTransporte) {
                     });
                 }
 
-                // 2. Registrar la salida educativa en la nueva tabla 'salidas'
+                // 2. Recopilar y concatenar docentes organizadores con espacios
+                const cardsOrganizadores = document.querySelectorAll('.card-docente-item[data-tipo="organizador"]');
+                let nombresOrganizadoresArr = [];
+                cardsOrganizadores.forEach(card => {
+                    const apellido = (card.querySelector('.input-docente-apellido')?.value || '').trim();
+                    const nombre = (card.querySelector('.input-docente-nombre')?.value || '').trim();
+                    if (apellido || nombre) {
+                        nombresOrganizadoresArr.push(`${apellido} ${nombre}`.trim());
+                    }
+                });
+                const docenteOrganizadorConcatenado = nombresOrganizadoresArr.join('   ');
+
+                // 3. Registrar la salida educativa en la tabla 'salidas'
                 const destinoFinal = obtenerDestinoFormateado();
                 const payloadSalida = {
                     destinoFinal,
-                    lugarSalida: document.getElementById('lugarSalida').value.trim(),
-                    lugarRegreso: document.getElementById('lugarRegreso').value.trim(),
-                    cantEstudiantes: parseInt(document.getElementById('cantEstudiantes').value) || 0,
-                    cantAcompanantes: parseInt(document.getElementById('cantAcompanantes').value) || 0,
-                    fechaSalida: document.getElementById('fechaSalida').value,
-                    horaSalida: document.getElementById('horaSalida').value,
-                    fechaRegreso: document.getElementById('fechaRegreso').value,
-                    horaRegreso: document.getElementById('horaRegreso').value,
-                    sinPernocte: checkboxSinPernocte.checked,
-                    nombreAlojamiento: document.getElementById('nombreAlojamiento')?.value.trim() || ''
+                    lugarSalida: document.getElementById('lugarSalida') ? document.getElementById('lugarSalida').value.trim() : '',
+                    lugarRegreso: document.getElementById('lugarRegreso') ? document.getElementById('lugarRegreso').value.trim() : '',
+                    cantEstudiantes: parseInt(document.getElementById('cantEstudiantes') ? document.getElementById('cantEstudiantes').value : 0) || 0,
+                    cantAcompanantes: parseInt(document.getElementById('cantAcompanantes') ? document.getElementById('cantAcompanantes').value : 0) || 0,
+                    fechaSalida: document.getElementById('fechaSalida') ? document.getElementById('fechaSalida').value : '',
+                    horaSalida: document.getElementById('horaSalida') ? document.getElementById('horaSalida').value : '',
+                    fechaRegreso: document.getElementById('fechaRegreso') ? document.getElementById('fechaRegreso').value : '',
+                    horaRegreso: document.getElementById('horaRegreso') ? document.getElementById('horaRegreso').value : '',
+                    sinPernocte: checkboxSinPernocte ? checkboxSinPernocte.checked : false,
+                    nombreAlojamiento: document.getElementById('nombreAlojamiento') ? document.getElementById('nombreAlojamiento').value.trim() : '',
+                    docenteOrganizador: docenteOrganizadorConcatenado
                 };
 
                 await fetch('/api/guardar-salida', {
@@ -1006,7 +1038,7 @@ if (formTransporte) {
                     body: JSON.stringify(payloadSalida)
                 });
 
-                // 3. Generar y descargar PDF consolidado
+                // 4. Generar y descargar PDF consolidado
                 generarPDFUnico();
 
                 alert("🎉 ¡Excelente! La salida educativa ha sido registrada en el sistema, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
@@ -1014,8 +1046,10 @@ if (formTransporte) {
             } catch(error) {
                 console.error("Error al guardar:", error);
                 alert("⚠️ Hubo un error al guardar los datos en la base de datos.");
-                btnSubmit.innerHTML = textoOriginal;
-                btnSubmit.disabled = false;
+                if (btnSubmit) {
+                    btnSubmit.innerHTML = textoOriginal;
+                    btnSubmit.disabled = false;
+                }
             }
 
         } else {

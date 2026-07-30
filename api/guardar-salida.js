@@ -9,18 +9,18 @@ module.exports = async function handler(request, response) {
     const { 
       destinoFinal, lugarSalida, lugarRegreso, cantEstudiantes, 
       cantAcompanantes, fechaSalida, horaSalida, fechaRegreso, 
-      horaRegreso, sinPernocte, nombreAlojamiento 
+      horaRegreso, sinPernocte, nombreAlojamiento, docenteOrganizador 
     } = request.body;
 
     const result = await sql`
       INSERT INTO salidas (
         destino, lugar_salida, lugar_regreso, cant_estudiantes, 
         cant_acompanantes, fecha_salida, hora_salida, fecha_regreso, 
-        hora_regreso, es_pernocte, alojamiento_nombre
+        hora_regreso, es_pernocte, alojamiento_nombre, docente_organizador
       ) VALUES (
         ${destinoFinal}, ${lugarSalida}, ${lugarRegreso}, ${cantEstudiantes}, 
         ${cantAcompanantes}, ${fechaSalida}, ${horaSalida}, ${fechaRegreso}, 
-        ${horaRegreso}, ${!sinPernocte}, ${nombreAlojamiento || null}
+        ${horaRegreso}, ${!sinPernocte}, ${nombreAlojamiento || null}, ${docenteOrganizador || ''}
       ) RETURNING id;
     `;
 
