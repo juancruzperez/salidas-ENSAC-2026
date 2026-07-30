@@ -178,8 +178,8 @@ if (checkboxSalidaLocal) {
 }
 
 function validarCantidades() {
-    const numEstudiantes = parseInt(cantEstudiantes.value) || 0;
-    const numAcompanantes = parseInt(cantAcompanantes.value) || 0;
+    const numEstudiantes = parseInt(cantEstudiantes ? cantEstudiantes.value : 0) || 0;
+    const numAcompanantes = parseInt(cantAcompanantes ? cantAcompanantes.value : 0) || 0;
 
     if (numEstudiantes > 0) {
         const minimoAcompanantes = Math.ceil(numEstudiantes / 10);
@@ -718,8 +718,48 @@ if (btnSiguienteTransporte) {
 }
 
 // ------------------------------------------------------------
-// LÓGICA DE GENERACIÓN DE UN ÚNICO PDF CONSOLIDADO (3 HOJAS)
+// FUNCIONES AUXILIARES PARA LECTURA DE ARCHIVOS Y PDF-LIB
 // ------------------------------------------------------------
+function leerArchivoComoArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+async function agregarImagenAPdf(finalDoc, arrayBuffer, mimeType) {
+    let image;
+    if (mimeType.includes('png')) {
+        image = await finalDoc.embedPng(arrayBuffer);
+    } else {
+        image = await finalDoc.embedJpg(arrayBuffer);
+    }
+    
+    // Dimensiones estándar A4 en puntos (595.28 x 841.89)
+    const page = finalDoc.addPage([595.28, 841.89]);
+    const { width, height } = page.getSize();
+    
+    const margin = 20;
+    const maxWidth = width - (margin * 2);
+    const maxHeight = height - (margin * 2);
+    
+    const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+    const scaledWidth = image.width * scale;
+    const scaledHeight = image.height * scale;
+    
+    const x = (width - scaledWidth) / 2;
+    const y = (height - scaledHeight) / 2;
+    
+    page.drawImage(image, {
+        x: x,
+        y: y,
+        width: scaledWidth,
+        height: scaledHeight
+    });
+}
+
 function formatearFechaDDMMAAAA(fechaISO) {
     if (!fechaISO) return '-';
     const partes = fechaISO.split('-');
@@ -740,8 +780,13 @@ function obtenerDestinoFormateado() {
     }
 }
 
-function generarPDFUnico() {
+// ------------------------------------------------------------
+// GENERACIÓN Y ENSAMBLE DEL PDF CONSOLIDADO
+// ------------------------------------------------------------
+async function generarPDFUnico() {
     const { jsPDF } = window.jspdf;
+    const { PDFDocument } = PDFLib;
+
     const doc = new jsPDF();
 
     const destinoFinalFormateado = obtenerDestinoFormateado();
@@ -749,7 +794,7 @@ function generarPDFUnico() {
     const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
 
     // ==========================================
-    // HOJA 1: NOTA DE ELEVACIÓN
+    // HOJA A: NOTA DE ELEVACIÓN (Sera Pagina 1)
     // ==========================================
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
@@ -794,7 +839,7 @@ function generarPDFUnico() {
     doc.text("Firma y Aclaración del Docente / Directivo", 155, finalY + 7, { align: "center" });
 
     // ==========================================
-    // HOJA 2: NÓMINA DE ESTUDIANTES
+    // HOJA B: NÓMINA DE ESTUDIANTES (Sera Pagina 3)
     // ==========================================
     doc.addPage(); 
 
@@ -845,7 +890,7 @@ function generarPDFUnico() {
     });
 
     // ==========================================
-    // HOJA 3: NÓMINA DE ORGANIZADORES Y ACOMPAÑANTES
+    // HOJA C: NÓMINA DE ORGANIZADORES Y ACOMPAÑANTES (Sera Pagina 4)
     // ==========================================
     doc.addPage(); 
 
@@ -889,7 +934,120 @@ function generarPDFUnico() {
         styles: { fontSize: 7.5 }
     });
 
-    doc.save("Salida_Educativa_Documentacion_Completa.pdf");
+    // ==========================================
+    // ENSAMBLE CON PDF-LIB EN EL ORDEN ESPECIFICADO
+    // ==========================================
+    const jsPdfBuffer = doc.output('arraybuffer');
+    const basePdfDoc = await PDFDocument.load(jsPdfBuffer);
+    const finalDoc = await PDFDocument.create();
+
+    // 1° NOTA DE ELEVACIÓN
+    const [notaElevacionPage] = await finalDoc.copyPages(basePdfDoc, [0]);
+    finalDoc.addPage(notaElevacionPage);
+
+    // 2° PROYECTO SUBIDO POR EL DOCENTE (PDF)
+    const inputProyecto = document.getElementById('archivoProyecto');
+    if (inputProyecto && inputProyecto.files && inputProyecto.files[0]) {
+        const fileProyecto = inputProyecto.files[0];
+        const bufferProj = await leerArchivoComoArrayBuffer(fileProyecto);
+        const projPdf = await PDFDocument.load(bufferProj);
+        const projPages = await finalDoc.copyPages(projPdf, projPdf.getPageIndices());
+        projPages.forEach(p => finalDoc.addPage(p));
+    }
+
+    // 3° NÓMINA DE ESTUDIANTES
+    const [estudiantesPage] = await finalDoc.copyPages(basePdfDoc, [1]);
+    finalDoc.addPage(estudiantesPage);
+
+    // 4° NÓMINA DE DOCENTES
+    const [docentesPage] = await finalDoc.copyPages(basePdfDoc, [2]);
+    finalDoc.addPage(docentesPage);
+
+    // 5° DOCUMENTACIÓN DE TRANSPORTE EN ORDEN
+    const sinTransporte = document.getElementById('sinTransporte');
+    if (sinTransporte && !sinTransporte.checked) {
+        const inputsTrans = document.querySelectorAll('.input-transporte');
+        for (const input of inputsTrans) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const buffer = await leerArchivoComoArrayBuffer(file);
+                if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                    const pdfDoc = await PDFDocument.load(buffer);
+                    const pages = await finalDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                    pages.forEach(p => finalDoc.addPage(p));
+                } else {
+                    await agregarImagenAPdf(finalDoc, buffer, file.type);
+                }
+            }
+        }
+    }
+
+    // DESCARGAR PDF CONSOLIDADO
+    const finalPdfBytes = await finalDoc.save();
+    const blob = new Blob([finalPdfBytes], { type: 'application/pdf' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = "Salida_Educativa_Documentacion_Completa.pdf";
+    link.click();
+}
+
+// ------------------------------------------------------------
+// EXPORTAR INFORME EJECUTIVO COMPLETO A PDF (BACKUP FÍSICO)
+// ------------------------------------------------------------
+async function exportarInformeEjecutivoPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape');
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("INFORME EJECUTIVO DE SALIDAS EDUCATIVAS", 14, 15);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const fechaActual = new Date().toLocaleDateString('es-AR');
+    doc.text(`Fecha de emisión: ${fechaActual} | Respaldo Físico / Archivo`, 14, 22);
+
+    try {
+        const respuesta = await fetch('/api/salidas');
+        const salidas = await respuesta.json();
+
+        if (!salidas || salidas.length === 0) {
+            alert("⚠️ No hay salidas registradas actualmente para exportar.");
+            return;
+        }
+
+        const filasTabla = salidas.map(s => {
+            const modalidad = s.es_pernocte ? 'CON PERNOCTE' : 'SIN PERNOCTE';
+            const fechaSalida = s.fecha_salida ? s.fecha_salida.split('T')[0] : '-';
+            const fechaRegreso = s.fecha_regreso ? s.fecha_regreso.split('T')[0] : '-';
+            
+            return [
+                `#${s.id}`,
+                (s.docente_organizador || 'NO ESPECIFICADO').toUpperCase(),
+                (s.destino || '-').toUpperCase(),
+                `${fechaSalida} (${s.hora_salida || '-'})`,
+                `${fechaRegreso} (${s.hora_regreso || '-'})`,
+                modalidad,
+                s.cant_estudiantes || 0,
+                s.cant_acompanantes || 0,
+                (s.estado || 'REGISTRADA').toUpperCase()
+            ];
+        });
+
+        doc.autoTable({
+            startY: 28,
+            head: [['# ID', 'Docente/s Organizador/es', 'Destino', 'Fecha Salida', 'Fecha Regreso', 'Modalidad', 'Est.', 'Acomp.', 'Estado']],
+            body: filasTabla,
+            theme: 'grid',
+            headStyles: { fillColor: [13, 110, 253] },
+            styles: { fontSize: 8.5 }
+        });
+
+        doc.save("Informe_Ejecutivo_Salidas_Educativas_Completo.pdf");
+    } catch (error) {
+        console.error("Error al generar el PDF del informe ejecutivo:", error);
+        alert("⚠️ Hubo un error al conectar con la base de datos para exportar el informe.");
+    }
 }
 
 // ------------------------------------------------------------
@@ -972,7 +1130,7 @@ if (formTransporte) {
             const textoOriginal = btnSubmit ? btnSubmit.innerHTML : '';
             
             if (btnSubmit) {
-                btnSubmit.innerHTML = "⏳ Guardando datos y generando PDF...";
+                btnSubmit.innerHTML = "⏳ Ensamblando documentos y generando PDF...";
                 btnSubmit.disabled = true;
             }
 
@@ -1038,14 +1196,14 @@ if (formTransporte) {
                     body: JSON.stringify(payloadSalida)
                 });
 
-                // 4. Generar y descargar PDF consolidado
-                generarPDFUnico();
+                // 4. Generar y ensamblar PDF consolidado con todos los adjuntos
+                await generarPDFUnico();
 
-                alert("🎉 ¡Excelente! La salida educativa ha sido registrada en el sistema, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
+                alert("🎉 ¡Excelente! La salida educativa ha sido registrada en el sistema, la base de datos se actualizó y se descargó el PDF unificado completo.");
                 location.reload(); 
             } catch(error) {
                 console.error("Error al guardar:", error);
-                alert("⚠️ Hubo un error al guardar los datos en la base de datos.");
+                alert("⚠️ Hubo un error al guardar o ensamblar los documentos.");
                 if (btnSubmit) {
                     btnSubmit.innerHTML = textoOriginal;
                     btnSubmit.disabled = false;
@@ -1057,64 +1215,4 @@ if (formTransporte) {
             alert("⚠️ Por favor, completa toda la documentación requerida del transporte o marca la casilla 'Sin transporte'.");
         }
     });
-}
-
-// ------------------------------------------------------------
-// EXPORTAR INFORME EJECUTIVO COMPLETO A PDF (BACKUP FÍSICO)
-// ------------------------------------------------------------
-async function exportarInformeEjecutivoPDF() {
-    const { jsPDF } = window.jspdf;
-    // Creamos el documento en orientación horizontal ('landscape') para aprovechar el ancho de la tabla
-    const doc = new jsPDF('landscape');
-
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("INFORME EJECUTIVO DE SALIDAS EDUCATIVAS", 14, 15);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    const fechaActual = new Date().toLocaleDateString('es-AR');
-    doc.text(`Fecha de emisión: ${fechaActual} | Respaldo Físico / Archivo`, 14, 22);
-
-    try {
-        const respuesta = await fetch('/api/salidas');
-        const salidas = await respuesta.json();
-
-        if (!salidas || salidas.length === 0) {
-            alert("⚠️ No hay salidas registradas actualmente para exportar.");
-            return;
-        }
-
-        const filasTabla = salidas.map(s => {
-            const modalidad = s.es_pernocte ? 'CON PERNOCTE' : 'SIN PERNOCTE';
-            const fechaSalida = s.fecha_salida ? s.fecha_salida.split('T')[0] : '-';
-            const fechaRegreso = s.fecha_regreso ? s.fecha_regreso.split('T')[0] : '-';
-            
-            return [
-                `#${s.id}`,
-                (s.docente_organizador || 'NO ESPECIFICADO').toUpperCase(),
-                (s.destino || '-').toUpperCase(),
-                `${fechaSalida} (${s.hora_salida || '-'})`,
-                `${fechaRegreso} (${s.hora_regreso || '-'})`,
-                modalidad,
-                s.cant_estudiantes || 0,
-                s.cant_acompanantes || 0,
-                (s.estado || 'REGISTRADA').toUpperCase()
-            ];
-        });
-
-        doc.autoTable({
-            startY: 28,
-            head: [['# ID', 'Docente/s Organizador/es', 'Destino', 'Fecha Salida', 'Fecha Regreso', 'Modalidad', 'Est.', 'Acomp.', 'Estado']],
-            body: filasTabla,
-            theme: 'grid',
-            headStyles: { fillColor: [13, 110, 253] },
-            styles: { fontSize: 8.5 }
-        });
-
-        doc.save("Informe_Ejecutivo_Salidas_Educativas_Completo.pdf");
-    } catch (error) {
-        console.error("Error al generar el PDF del informe ejecutivo:", error);
-        alert("⚠️ Hubo un error al conectar con la base de datos para exportar el informe.");
-    }
 }
