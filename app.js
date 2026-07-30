@@ -24,7 +24,7 @@ const inputsAlojamiento = document.querySelectorAll('.input-alojamiento');
 
 const btnSiguienteEstudiantes = document.getElementById('btnSiguienteEstudiantes');
 
-// --- NUEVO: Manejo de Destino Local / Exterior ---
+// --- Manejo de Destino Local / Exterior ---
 const checkboxSalidaLocal = document.getElementById('salidaLocal');
 const camposDestinoExtra = document.getElementById('camposDestinoExtra');
 const inputsDestinoExtra = document.querySelectorAll('.input-destino-extra');
@@ -43,9 +43,10 @@ function manejarSalidaLocal() {
         });
     }
 }
-checkboxSalidaLocal.addEventListener('change', manejarSalidaLocal);
-manejarSalidaLocal(); // Ejecutar al cargar la página
-// --------------------------------------------------
+if (checkboxSalidaLocal) {
+    checkboxSalidaLocal.addEventListener('change', manejarSalidaLocal);
+    manejarSalidaLocal();
+}
 
 function validarCantidades() {
     const numEstudiantes = parseInt(cantEstudiantes.value) || 0;
@@ -151,7 +152,32 @@ function validarEstudiantes() {
     }
 }
 
+// --- VALIDACIÓN OBLIGATORIA DE DATOS MÉDICOS DE ESTUDIANTES ---
 btnSiguienteDocentes.addEventListener('click', function() {
+    const checkboxesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
+    let datosCompletos = true;
+    let nombreIncompleto = "";
+
+    checkboxesSeleccionados.forEach(checkbox => {
+        const dni = checkbox.value;
+        const nombre = checkbox.getAttribute('data-nombre') || 'Estudiante';
+        const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
+        const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
+
+        if (selectGS && inputFecha) {
+            // Verificamos que no estén vacíos o nulos
+            if (!selectGS.value.trim() || !inputFecha.value.trim()) {
+                datosCompletos = false;
+                nombreIncompleto = nombre;
+            }
+        }
+    });
+
+    if (!datosCompletos) {
+        alert(`⚠️ No se puede avanzar: El/la estudiante "${nombreIncompleto}" (y posiblemente otros) seleccionado/s tiene incompleto el Grupo Sanguíneo o la Fecha de Nacimiento. Estos datos son obligatorios.`);
+        return; // Detiene el avance al siguiente paso
+    }
+
     seccion3.classList.remove('d-none');
     seccion3.scrollIntoView();
     generarCamposDocentes();
@@ -462,7 +488,6 @@ function generarPDFUnico() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Lógica del destino (Local vs Exterior)
     const destinoBase = (document.getElementById('destino').value || 'DESTINO').trim();
     let destinoFinalFormateado = "";
     
