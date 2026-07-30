@@ -9,11 +9,77 @@
 </head>
 <body class="bg-light">
 
-<div class="container mt-5 mb-5" id="contenedorPrincipal">
+<div class="container mt-5" id="seccionLogin">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0 rounded-4 mt-5">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h3 class="fw-bold text-primary">Acceso al Sistema</h3>
+                        <p class="text-muted small">Salidas Educativas - Res. Ministerial N°59/2026</p>
+                    </div>
+                    <form id="formLogin">
+                        <div class="mb-3">
+                            <label for="loginUser" class="form-label fw-bold">Usuario</label>
+                            <input type="text" class="form-control" id="loginUser" required placeholder="Ingrese su usuario">
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPass" class="form-label fw-bold">Contraseña</label>
+                            <input type="password" class="form-control" id="loginPass" required placeholder="••••••••">
+                        </div>
+                        <div class="alert alert-danger d-none py-2 text-center small" id="alertaLogin"></div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mt-2">Iniciar Sesión</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5 mb-5 d-none" id="vistaSecretariaDireccion">
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+        <div>
+            <h2 class="text-primary fw-bold mb-0">Panel Institucional</h2>
+            <small class="text-muted">Perfil: <span id="spanRolEjecutivo" class="fw-bold text-dark"></span></small>
+        </div>
+        <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">Resúmenes Ejecutivos de Salidas Educativas</h4>
+        </div>
+        <div class="card-body bg-white">
+            <p class="text-muted">Listado consolidado de las salidas registradas en la institución.</p>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Destino</th>
+                            <th>Fecha Salida</th>
+                            <th>Modalidad</th>
+                            <th>Estudiantes</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaResumenesEjecutivos">
+                        <tr><td colspan="6" class="text-center text-muted">No hay salidas registradas actualmente.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5 mb-5 d-none" id="contenedorPrincipal">
     
-    <div class="text-center mb-4">
-        <h1 class="text-primary fw-bold">Gestión de Salidas Educativas</h1>
-        <p class="text-muted">Cumplimentación de Resolución Ministerial N°59/2026</p>
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+        <div>
+            <h2 class="text-primary fw-bold mb-0">Gestión de Salidas Educativas</h2>
+            <small class="text-muted">Usuario conectado: <span id="spanUsuarioRol" class="fw-bold text-dark"></span></small>
+        </div>
+        <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
     <div class="card shadow mb-4" id="seccion1-gestion">
@@ -130,9 +196,6 @@
                 <div class="mb-4 p-3 bg-white border rounded shadow-sm">
                     <label for="archivoProyecto" class="form-label fw-bold">Subir Proyecto y Cronograma de Actividades (Word: .doc, .docx)</label>
                     <input type="file" class="form-control" id="archivoProyecto" accept=".doc,.docx" required>
-                    <div class="form-text text-muted mt-2">
-                        <strong>Requisitos según Res. Ministerial N°59/2026:</strong> El documento debe incluir fundamentación pedagógica, itinerario detallado (paradas técnicas) y ruta sanitaria y policial.
-                    </div>
                 </div>
 
                 <div class="text-end mt-4 border-top pt-3">
@@ -150,9 +213,7 @@
         </div>
         <div class="card-body">
             <form id="formEstudiantes">
-                
                 <div id="contenedorSeccionesCursos"></div>
-
                 <div class="card p-3 bg-light border-success mb-4 shadow-sm">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="checkAgregarOtroCurso">
@@ -161,19 +222,16 @@
                         </label>
                     </div>
                 </div>
-
                 <div class="d-flex justify-content-between align-items-center mt-4 border-top pt-3">
                     <div>
                         <h5 class="mb-0">Estudiantes seleccionados: 
                             <span id="textoContadorEstudiantes" class="fw-bold text-danger">0 / 0</span>
                         </h5>
-                        <small class="text-muted">Debe coincidir con la cantidad declarada en el Paso 1.</small>
                     </div>
                     <button type="button" class="btn btn-success btn-lg" id="btnSiguienteDocentes" disabled>
                         Continuar al Paso 3 &rarr;
                     </button>
                 </div>
-
             </form>
         </div>
     </div>
@@ -184,10 +242,8 @@
         </div>
         <div class="card-body">
             <form id="formDocentes">
-                <p class="text-muted">Completa los datos de los <span id="labelCantDocentes" class="fw-bold">0</span> docentes acompañantes declarados:</p>
-                
+                <p class="text-muted">Completa los datos de los docentes declarados:</p>
                 <div id="contenedorDocentesForm"></div>
-
                 <div class="text-end mt-4 border-top pt-3">
                     <button type="button" class="btn btn-info text-white btn-lg" id="btnSiguienteTransporte" disabled>
                         Continuar al Paso 4 &rarr;
@@ -203,14 +259,12 @@
         </div>
         <div class="card-body">
             <form id="formTransporte" novalidate>
-                
                 <div class="form-check mb-4 bg-white p-3 border rounded">
                     <input class="form-check-input" type="checkbox" id="sinTransporte">
                     <label class="form-check-label fw-bold text-danger" for="sinTransporte" style="cursor: pointer;">
                         Sin transporte (Traslado por medios propios, caminata o particulares)
                     </label>
                 </div>
-
                 <div id="camposTransporte">
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-7">
@@ -223,7 +277,6 @@
                             <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
                         </div>
                     </div>
-
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-7">
                             <label class="form-label fw-bold">Habilitación de transporte (PDF)</label>
@@ -235,7 +288,6 @@
                             <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
                         </div>
                     </div>
-
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-7">
                             <label class="form-label fw-bold">Licencia de Conductor D-2 (PDF)</label>
@@ -247,7 +299,6 @@
                             <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Este documento vence antes de la fecha del viaje.</small>
                         </div>
                     </div>
-
                     <div class="row mb-4 align-items-center">
                         <div class="col-md-7">
                             <label class="form-label fw-bold">Apto Psicofísico (PDF)</label>
@@ -260,7 +311,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="mt-5 text-center border-top pt-4">
                     <h5 class="mb-3">¡Todos los requerimientos han sido completados!</h5>
                     <button type="submit" class="btn btn-dark btn-lg px-5">
@@ -274,10 +324,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-
 <script src="app.js"></script>
 </body>
 </html>

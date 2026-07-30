@@ -1,4 +1,72 @@
 // ==========================================
+// LÓGICA DE AUTENTICACIÓN Y ROLES
+// ==========================================
+const seccionLogin = document.getElementById('seccionLogin');
+const contenedorPrincipal = document.getElementById('contenedorPrincipal');
+const vistaSecretariaDireccion = document.getElementById('vistaSecretariaDireccion');
+const formLogin = document.getElementById('formLogin');
+const loginUser = document.getElementById('loginUser');
+const loginPass = document.getElementById('loginPass');
+const alertaLogin = document.getElementById('alertaLogin');
+const spanUsuarioRol = document.getElementById('spanUsuarioRol');
+const spanRolEjecutivo = document.getElementById('spanRolEjecutivo');
+
+formLogin.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    alertaLogin.classList.add('d-none');
+
+    try {
+        const respuesta = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: loginUser.value.trim(),
+                password: loginPass.value.trim()
+            })
+        });
+
+        const data = await respuesta.json();
+
+        if (!respuesta.ok) {
+            throw new Error(data.error || 'Credenciales inválidas');
+        }
+
+        localStorage.setItem('usuarioSesion', JSON.stringify(data.user));
+        controlarPermisos(data.user);
+
+    } catch (error) {
+        alertaLogin.textContent = error.message;
+        alertaLogin.classList.remove('d-none');
+    }
+});
+
+function controlarPermisos(user) {
+    seccionLogin.classList.add('d-none');
+
+    if (user.role === 'secretaria' || user.role === 'direccion') {
+        vistaSecretariaDireccion.classList.remove('d-none');
+        spanRolEjecutivo.textContent = user.role.toUpperCase();
+    } else {
+        // admin o docente (usuario final)
+        contenedorPrincipal.classList.remove('d-none');
+        spanUsuarioRol.textContent = `${user.username.toUpperCase()} (${user.role.toUpperCase()})`;
+    }
+}
+
+function cerrarSesion() {
+    localStorage.removeItem('usuarioSesion');
+    location.reload();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const sesionGuardada = localStorage.getItem('usuarioSesion');
+    if (sesionGuardada) {
+        const user = JSON.parse(sesionGuardada);
+        controlarPermisos(user);
+    }
+});
+
+// ==========================================
 // VARIABLES GLOBALES DE SECCIONES
 // ==========================================
 const seccion1 = document.getElementById('seccion1-gestion');
@@ -24,7 +92,6 @@ const inputsAlojamiento = document.querySelectorAll('.input-alojamiento');
 
 const btnSiguienteEstudiantes = document.getElementById('btnSiguienteEstudiantes');
 
-// --- Manejo de Destino Local / Exterior ---
 const checkboxSalidaLocal = document.getElementById('salidaLocal');
 const camposDestinoExtra = document.getElementById('camposDestinoExtra');
 const inputsDestinoExtra = document.querySelectorAll('.input-destino-extra');
@@ -70,8 +137,10 @@ function validarCantidades() {
     generarCamposDocentes();
 }
 
-formGestion.addEventListener('input', validarCantidades);
-formGestion.addEventListener('change', validarCantidades);
+if (formGestion) {
+    formGestion.addEventListener('input', validarCantidades);
+    formGestion.addEventListener('change', validarCantidades);
+}
 
 function manejarPernocte() {
     if (checkboxSinPernocte.checked) {
@@ -91,40 +160,44 @@ function manejarPernocte() {
     }
 }
 
-checkboxSinPernocte.addEventListener('change', manejarPernocte);
-inputFechaSalida.addEventListener('change', function() {
+if (checkboxSinPernocte) {
+    checkboxSinPernocte.addEventListener('change', manejarPernocte);
+    inputFechaSalida.addEventListener('change', function() {
+        manejarPernocte();
+    });
     manejarPernocte();
-});
-manejarPernocte();
+}
 
-btnSiguienteEstudiantes.addEventListener('click', function() {
-    const fSalida = inputFechaSalida.value;
-    const fRegreso = inputFechaRegreso.value;
-    const hSalida = inputHoraSalida.value;
-    const hRegreso = inputHoraRegreso.value;
+if (btnSiguienteEstudiantes) {
+    btnSiguienteEstudiantes.addEventListener('click', function() {
+        const fSalida = inputFechaSalida.value;
+        const fRegreso = inputFechaRegreso.value;
+        const hSalida = inputHoraSalida.value;
+        const hRegreso = inputHoraRegreso.value;
 
-    if (fSalida && fRegreso) {
-        if (!checkboxSinPernocte.checked && fRegreso < fSalida) {
-            alert("⚠️ La fecha de regreso no puede ser anterior a la fecha de salida.");
-            return;
-        }
-        if (fSalida === fRegreso && hSalida && hRegreso) {
-            if (hRegreso <= hSalida) {
-                alert("⚠️ Para viajes en el mismo día, la hora de regreso debe ser posterior a la hora de salida.");
+        if (fSalida && fRegreso) {
+            if (!checkboxSinPernocte.checked && fRegreso < fSalida) {
+                alert("⚠️ La fecha de regreso no puede ser anterior a la fecha de salida.");
                 return;
             }
+            if (fSalida === fRegreso && hSalida && hRegreso) {
+                if (hRegreso <= hSalida) {
+                    alert("⚠️ Para viajes en el mismo día, la hora de regreso debe ser posterior a la hora de salida.");
+                    return;
+                }
+            }
         }
-    }
 
-    if (!formGestion.checkValidity()) {
-        formGestion.classList.add('was-validated');
-        alert("⚠️ Por favor, completa todos los campos obligatorios y adjunta el archivo del proyecto en el Paso 1.");
-    } else {
-        formGestion.classList.remove('was-validated');
-        seccion2.classList.remove('d-none');
-        seccion2.scrollIntoView();
-    }
-});
+        if (!formGestion.checkValidity()) {
+            formGestion.classList.add('was-validated');
+            alert("⚠️ Por favor, completa todos los campos obligatorios y adjunta el archivo del proyecto en el Paso 1.");
+        } else {
+            formGestion.classList.remove('was-validated');
+            seccion2.classList.remove('d-none');
+            seccion2.scrollIntoView();
+        }
+    });
+}
 
 // ------------------------------------------------------------
 // LÓGICA DEL PASO 2: ESTUDIANTES 
@@ -139,47 +212,55 @@ function validarEstudiantes() {
     const declarados = parseInt(cantEstudiantes.value) || 0;
     const seleccionados = document.querySelectorAll('.check-estudiante:checked').length;
 
-    textoContadorEstudiantes.textContent = `${seleccionados} / ${declarados}`;
+    if (textoContadorEstudiantes) {
+        textoContadorEstudiantes.textContent = `${seleccionados} / ${declarados}`;
+    }
 
     if (declarados > 0 && seleccionados === declarados) {
-        textoContadorEstudiantes.classList.remove('text-danger');
-        textoContadorEstudiantes.classList.add('text-success'); 
-        btnSiguienteDocentes.removeAttribute('disabled'); 
+        if (textoContadorEstudiantes) {
+            textoContadorEstudiantes.classList.remove('text-danger');
+            textoContadorEstudiantes.classList.add('text-success');
+        }
+        if (btnSiguienteDocentes) btnSiguienteDocentes.removeAttribute('disabled'); 
     } else {
-        textoContadorEstudiantes.classList.remove('text-success');
-        textoContadorEstudiantes.classList.add('text-danger'); 
-        btnSiguienteDocentes.setAttribute('disabled', 'true'); 
+        if (textoContadorEstudiantes) {
+            textoContadorEstudiantes.classList.remove('text-success');
+            textoContadorEstudiantes.classList.add('text-danger');
+        }
+        if (btnSiguienteDocentes) btnSiguienteDocentes.setAttribute('disabled', 'true'); 
     }
 }
 
-btnSiguienteDocentes.addEventListener('click', function() {
-    const checkboxesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
-    let datosCompletos = true;
-    let nombreIncompleto = "";
+if (btnSiguienteDocentes) {
+    btnSiguienteDocentes.addEventListener('click', function() {
+        const checkboxesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
+        let datosCompletos = true;
+        let nombreIncompleto = "";
 
-    checkboxesSeleccionados.forEach(checkbox => {
-        const dni = checkbox.value;
-        const nombre = checkbox.getAttribute('data-nombre') || 'Estudiante';
-        const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
-        const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
+        checkboxesSeleccionados.forEach(checkbox => {
+            const dni = checkbox.value;
+            const nombre = checkbox.getAttribute('data-nombre') || 'Estudiante';
+            const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
+            const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
 
-        if (selectGS && inputFecha) {
-            if (!selectGS.value.trim() || !inputFecha.value.trim()) {
-                datosCompletos = false;
-                nombreIncompleto = nombre;
+            if (selectGS && inputFecha) {
+                if (!selectGS.value.trim() || !inputFecha.value.trim()) {
+                    datosCompletos = false;
+                    nombreIncompleto = nombre;
+                }
             }
+        });
+
+        if (!datosCompletos) {
+            alert(`⚠️ No se puede avanzar: El/la estudiante "${nombreIncompleto}" (y posiblemente otros) seleccionado/s tiene incompleto el Grupo Sanguíneo o la Fecha de Nacimiento. Estos datos son obligatorios.`);
+            return;
         }
+
+        seccion3.classList.remove('d-none');
+        seccion3.scrollIntoView();
+        generarCamposDocentes();
     });
-
-    if (!datosCompletos) {
-        alert(`⚠️ No se puede avanzar: El/la estudiante "${nombreIncompleto}" (y posiblemente otros) seleccionado/s tiene incompleto el Grupo Sanguíneo o la Fecha de Nacimiento. Estos datos son obligatorios.`);
-        return;
-    }
-
-    seccion3.classList.remove('d-none');
-    seccion3.scrollIntoView();
-    generarCamposDocentes();
-});
+}
 
 function agregarSeccionCurso() {
     contadorCursos++;
@@ -275,7 +356,9 @@ function agregarSeccionCurso() {
             </div>
         </div>
     `;
-    contenedorSeccionesCursos.insertAdjacentHTML('beforeend', htmlSeccion);
+    if (contenedorSeccionesCursos) {
+        contenedorSeccionesCursos.insertAdjacentHTML('beforeend', htmlSeccion);
+    }
 }
 
 async function buscarAlumnosPorCurso(idCurso) {
@@ -380,21 +463,24 @@ function eliminarSeccionCurso(idCurso) {
     }
 }
 
-checkAgregarOtroCurso.addEventListener('change', function() {
-    if (this.checked) {
-        agregarSeccionCurso(); 
-        this.checked = false;  
-    }
-});
+if (checkAgregarOtroCurso) {
+    checkAgregarOtroCurso.addEventListener('change', function() {
+        if (this.checked) {
+            agregarSeccionCurso(); 
+            this.checked = false;  
+        }
+    });
+}
 
-agregarSeccionCurso();
-validarEstudiantes();
+if (contenedorSeccionesCursos) {
+    agregarSeccionCurso();
+    validarEstudiantes();
+}
 
 // ------------------------------------------------------------
 // LÓGICA DEL PASO 3: DOCENTES (ORGANIZADORES Y ACOMPAÑANTES)
 // ------------------------------------------------------------
 const formDocentes = document.getElementById('formDocentes');
-const labelCantDocentes = document.getElementById('labelCantDocentes');
 const contenedorDocentesForm = document.getElementById('contenedorDocentesForm');
 const btnSiguienteTransporte = document.getElementById('btnSiguienteTransporte');
 
@@ -402,12 +488,12 @@ let cantidadOrganizadoresActual = 1;
 
 function generarCamposDocentes() {
     const cantTotalDeclarada = parseInt(cantAcompanantes.value) || 0;
-    labelCantDocentes.textContent = cantTotalDeclarada;
+    if (!contenedorDocentesForm) return;
     contenedorDocentesForm.innerHTML = '';
 
     if (cantTotalDeclarada <= 0) {
         contenedorDocentesForm.innerHTML = '<p class="text-danger">Por favor, declare primero la cantidad total de acompañantes en el Paso 1.</p>';
-        btnSiguienteTransporte.setAttribute('disabled', 'true');
+        if (btnSiguienteTransporte) btnSiguienteTransporte.setAttribute('disabled', 'true');
         return;
     }
 
@@ -441,13 +527,11 @@ function generarCamposDocentes() {
 
     contenedorDocentesForm.innerHTML = htmlSeccionDocentes;
 
-    // Renderizar Organizadores
     const contenedorOrg = document.getElementById('contenedorOrganizadores');
     for (let i = 1; i <= cantidadOrganizadoresActual; i++) {
         contenedorOrg.innerHTML += crearCardDocente(`Docente Organizador #${i}`, 'organizador', i > 1);
     }
 
-    // Renderizar Acompañantes Regulares
     const contenedorAcomp = document.getElementById('contenedorAcompanantes');
     for (let i = 1; i <= cantAcompanantesRegulares; i++) {
         contenedorAcomp.innerHTML += crearCardDocente(`Docente Acompañante #${i}`, 'acompanante', false);
@@ -528,7 +612,7 @@ function validarDocentes() {
     const selectsGs = document.querySelectorAll('.input-docente-gs');
     
     if (inputsDocentes.length === 0) {
-        btnSiguienteTransporte.setAttribute('disabled', 'true');
+        if (btnSiguienteTransporte) btnSiguienteTransporte.setAttribute('disabled', 'true');
         return;
     }
 
@@ -545,21 +629,22 @@ function validarDocentes() {
     });
 
     if (todoCompleto) {
-        btnSiguienteTransporte.removeAttribute('disabled');
+        if (btnSiguienteTransporte) btnSiguienteTransporte.removeAttribute('disabled');
     } else {
-        btnSiguienteTransporte.setAttribute('disabled', 'true');
+        if (btnSiguienteTransporte) btnSiguienteTransporte.setAttribute('disabled', 'true');
     }
 }
 
-btnSiguienteTransporte.addEventListener('click', function() {
-    seccion4.classList.remove('d-none');
-    seccion4.scrollIntoView();
-});
+if (btnSiguienteTransporte) {
+    btnSiguienteTransporte.addEventListener('click', function() {
+        seccion4.classList.remove('d-none');
+        seccion4.scrollIntoView();
+    });
+}
 
 // ------------------------------------------------------------
 // LÓGICA DE GENERACIÓN DE UN ÚNICO PDF CONSOLIDADO (3 HOJAS)
 // ------------------------------------------------------------
-
 function formatearFechaDDMMAAAA(fechaISO) {
     if (!fechaISO) return '-';
     const partes = fechaISO.split('-');
@@ -764,7 +849,9 @@ function manejarSinTransporte() {
     }
 }
 
-sinTransporte.addEventListener('change', manejarSinTransporte);
+if (sinTransporte) {
+    sinTransporte.addEventListener('change', manejarSinTransporte);
+}
 
 inputsValidez.forEach(inputValidez => {
     inputValidez.addEventListener('change', function() {
@@ -787,69 +874,71 @@ inputsValidez.forEach(inputValidez => {
     });
 });
 
-formTransporte.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    let hayDocumentosVencidos = false;
-    if (!sinTransporte.checked) {
-        document.querySelectorAll('.alerta-vencido').forEach(alerta => {
-            if (!alerta.classList.contains('d-none')) {
-                hayDocumentosVencidos = true;
-            }
-        });
-    }
-
-    if (hayDocumentosVencidos) {
-        alert("⚠️ No se puede registrar la salida: Hay documentos del transporte cuya fecha de validez es anterior al día del viaje (se encuentran vencidos).");
-        return;
-    }
-
-    if (formTransporte.checkValidity()) {
-        const btnSubmit = formTransporte.querySelector('button[type="submit"]');
-        const textoOriginal = btnSubmit.innerHTML;
+if (formTransporte) {
+    formTransporte.addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        btnSubmit.innerHTML = "⏳ Guardando datos y generando PDF...";
-        btnSubmit.disabled = true;
-
-        try {
-            const estudiantesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
-            const datosAActualizar = [];
-
-            estudiantesSeleccionados.forEach(checkbox => {
-                const dni = checkbox.value;
-                const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
-                const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
-
-                if (selectGS && inputFecha) {
-                    datosAActualizar.push({
-                        dni: dni,
-                        grupoSanguineo: selectGS.value,
-                        fechaNacimiento: inputFecha.value
-                    });
+        let hayDocumentosVencidos = false;
+        if (!sinTransporte.checked) {
+            document.querySelectorAll('.alerta-vencido').forEach(alerta => {
+                if (!alerta.classList.contains('d-none')) {
+                    hayDocumentosVencidos = true;
                 }
             });
-
-            if (datosAActualizar.length > 0) {
-                await fetch('/api/actualizar-estudiantes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ estudiantes: datosAActualizar })
-                });
-            }
-
-            generarPDFUnico();
-
-            alert("🎉 ¡Excelente! La salida educativa ha sido registrada, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
-            location.reload(); 
-        } catch(error) {
-            console.error("Error al guardar:", error);
-            alert("⚠️ Hubo un error al guardar los datos en la base de datos.");
-            btnSubmit.innerHTML = textoOriginal;
-            btnSubmit.disabled = false;
         }
 
-    } else {
-        formTransporte.classList.add('was-validated');
-        alert("⚠️ Por favor, completa toda la documentación requerida del transporte o marca la casilla 'Sin transporte'.");
-    }
-});
+        if (hayDocumentosVencidos) {
+            alert("⚠️ No se puede registrar la salida: Hay documentos del transporte cuya fecha de validez es anterior al día del viaje (se encuentran vencidos).");
+            return;
+        }
+
+        if (formTransporte.checkValidity()) {
+            const btnSubmit = formTransporte.querySelector('button[type="submit"]');
+            const textoOriginal = btnSubmit.innerHTML;
+            
+            btnSubmit.innerHTML = "⏳ Guardando datos y generando PDF...";
+            btnSubmit.disabled = true;
+
+            try {
+                const estudiantesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
+                const datosAActualizar = [];
+
+                estudiantesSeleccionados.forEach(checkbox => {
+                    const dni = checkbox.value;
+                    const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
+                    const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
+
+                    if (selectGS && inputFecha) {
+                        datosAActualizar.push({
+                            dni: dni,
+                            grupoSanguineo: selectGS.value,
+                            fechaNacimiento: inputFecha.value
+                        });
+                    }
+                });
+
+                if (datosAActualizar.length > 0) {
+                    await fetch('/api/actualizar-estudiantes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ estudiantes: datosAActualizar })
+                    });
+                }
+
+                generarPDFUnico();
+
+                alert("🎉 ¡Excelente! La salida educativa ha sido registrada, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
+                location.reload(); 
+            } catch(error) {
+                console.error("Error al guardar:", error);
+                alert("⚠️ Hubo un error al guardar los datos en la base de datos.");
+                btnSubmit.innerHTML = textoOriginal;
+                btnSubmit.disabled = false;
+            }
+
+        } else {
+            formTransporte.classList.add('was-validated');
+            alert("⚠️ Por favor, completa toda la documentación requerida del transporte o marca la casilla 'Sin transporte'.");
+        }
+    });
+}
