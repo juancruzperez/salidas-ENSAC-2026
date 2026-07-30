@@ -24,6 +24,29 @@ const inputsAlojamiento = document.querySelectorAll('.input-alojamiento');
 
 const btnSiguienteEstudiantes = document.getElementById('btnSiguienteEstudiantes');
 
+// --- NUEVO: Manejo de Destino Local / Exterior ---
+const checkboxSalidaLocal = document.getElementById('salidaLocal');
+const camposDestinoExtra = document.getElementById('camposDestinoExtra');
+const inputsDestinoExtra = document.querySelectorAll('.input-destino-extra');
+
+function manejarSalidaLocal() {
+    if (checkboxSalidaLocal.checked) {
+        camposDestinoExtra.classList.add('d-none');
+        inputsDestinoExtra.forEach(input => {
+            input.required = false;
+            input.value = '';
+        });
+    } else {
+        camposDestinoExtra.classList.remove('d-none');
+        inputsDestinoExtra.forEach(input => {
+            input.required = true;
+        });
+    }
+}
+checkboxSalidaLocal.addEventListener('change', manejarSalidaLocal);
+manejarSalidaLocal(); // Ejecutar al cargar la página
+// --------------------------------------------------
+
 function validarCantidades() {
     const numEstudiantes = parseInt(cantEstudiantes.value) || 0;
     const numAcompanantes = parseInt(cantAcompanantes.value) || 0;
@@ -231,7 +254,6 @@ function agregarSeccionCurso() {
     contenedorSeccionesCursos.insertAdjacentHTML('beforeend', htmlSeccion);
 }
 
-// Función asíncrona para consultar la API de Vercel
 async function buscarAlumnosPorCurso(idCurso) {
     const turno = document.getElementById(`filtroTurno_${idCurso}`).value;
     const ano = document.getElementById(`filtroAno_${idCurso}`).value;
@@ -440,7 +462,21 @@ function generarPDFUnico() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const destino = (document.getElementById('destino').value || 'Destino').toUpperCase();
+    // Lógica del destino (Local vs Exterior)
+    const destinoBase = (document.getElementById('destino').value || 'DESTINO').trim();
+    let destinoFinalFormateado = "";
+    
+    if (document.getElementById('salidaLocal').checked) {
+        destinoFinalFormateado = `${destinoBase} - CÓRDOBA`;
+    } else {
+        const pais = (document.getElementById('paisDestino').value || '').trim();
+        const provincia = (document.getElementById('provinciaDestino').value || '').trim();
+        const ciudad = (document.getElementById('ciudadDestino').value || '').trim();
+        destinoFinalFormateado = `${destinoBase} - ${ciudad}, ${provincia}, ${pais}`;
+    }
+    
+    destinoFinalFormateado = destinoFinalFormateado.toUpperCase();
+
     const fechaSalidaIso = document.getElementById('fechaSalida').value || '';
     const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
 
@@ -458,7 +494,7 @@ function generarPDFUnico() {
     const modalidad = checkboxSinPernocte.checked ? "SIN PERNOCTE (IDA Y VUELTA EN EL DÍA)" : "CON PERNOCTE";
     
     const datosPaso1 = [
-        ["Destino del viaje:", destino],
+        ["Destino del viaje:", destinoFinalFormateado],
         ["Lugar de salida:", (document.getElementById('lugarSalida').value || '-').toUpperCase()],
         ["Lugar de regreso:", (document.getElementById('lugarRegreso').value || '-').toUpperCase()],
         ["Cantidad de estudiantes:", document.getElementById('cantEstudiantes').value || '-'],
@@ -492,7 +528,7 @@ function generarPDFUnico() {
     // ==========================================
     // HOJA 2: NÓMINA DE ESTUDIANTES
     // ==========================================
-    doc.addPage(); // Segunda hoja
+    doc.addPage(); 
 
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
@@ -500,7 +536,7 @@ function generarPDFUnico() {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalidaFormat}`, 105, 27, { align: "center" });
+    doc.text(`Destino: ${destinoFinalFormateado} | Fecha de salida: ${fechaSalidaFormat}`, 105, 27, { align: "center" });
 
     const checkboxes = document.querySelectorAll('.check-estudiante:checked');
     const tablaEstudiantes = [];
@@ -513,7 +549,6 @@ function generarPDFUnico() {
         const turno = (cb.getAttribute('data-turno') || '-').toUpperCase();
         const ciclo = (cb.getAttribute('data-ciclo') || '-').toUpperCase();
         
-        // Concatenamos Curso/Año + División + Especialidad/Ciclo + Turno con espacios
         const pertenenciaInstitucional = `${ano} ${division} ${ciclo} ${turno}`.replace(/\s+/g, ' ').trim();
 
         const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
@@ -544,7 +579,7 @@ function generarPDFUnico() {
     // ==========================================
     // HOJA 3: NÓMINA DE ACOMPAÑANTES
     // ==========================================
-    doc.addPage(); // Tercera hoja
+    doc.addPage(); 
 
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
@@ -552,7 +587,7 @@ function generarPDFUnico() {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalidaFormat}`, 105, 27, { align: "center" });
+    doc.text(`Destino: ${destinoFinalFormateado} | Fecha de salida: ${fechaSalidaFormat}`, 105, 27, { align: "center" });
 
     const cardsDocentes = document.querySelectorAll('.card-docente-item');
     const tablaDocentes = [];
