@@ -264,11 +264,10 @@ async function buscarAlumnosPorCurso(idCurso) {
             alumnosFiltrados.forEach(alumno => {
                 const gsGuardado = (alumno.grupo_sanguineo || '').trim();
 
-                // A los selectores les agregamos la clase "input-grupo-sanguineo" / "input-fecha-nacimiento" y un data-dni
                 const fila = `
                     <tr>
                         <td class="text-center">
-                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" onchange="validarEstudiantes()">
+                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" data-nombre="${alumno.apellido_nombre}" data-curso="${alumno.ano}° '${alumno.division}'" onchange="validarEstudiantes()">
                         </td>
                         <td>
                             <strong>${alumno.apellido_nombre}</strong><br>
@@ -359,24 +358,24 @@ function generarCamposDocentes() {
 
     for (let i = 1; i <= cant; i++) {
         const htmlDocente = `
-            <div class="card mb-3 p-3 bg-white border">
+            <div class="card mb-3 p-3 bg-white border card-docente-item">
                 <h6 class="text-primary fw-bold mb-3">Docente Acompañante #${i}</h6>
                 <div class="row">
                     <div class="col-md-3 mb-3">
                         <label class="form-label fw-bold">DNI</label>
-                        <input type="text" class="form-control input-docente" placeholder="Sin puntos" required>
+                        <input type="text" class="form-control input-docente input-docente-dni" placeholder="Sin puntos" required>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label fw-bold">Apellido/s</label>
-                        <input type="text" class="form-control input-docente" placeholder="Apellidos" required>
+                        <input type="text" class="form-control input-docente input-docente-apellido" placeholder="Apellidos" required>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label fw-bold">Nombres</label>
-                        <input type="text" class="form-control input-docente" placeholder="Nombres" required>
+                        <input type="text" class="form-control input-docente input-docente-nombre" placeholder="Nombres" required>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label fw-bold">Teléfono</label>
-                        <input type="tel" class="form-control input-docente" placeholder="Cod. área + nro" required>
+                        <input type="tel" class="form-control input-docente input-docente-telefono" placeholder="Cod. área + nro" required>
                     </div>
                 </div>
             </div>
@@ -418,6 +417,151 @@ btnSiguienteTransporte.addEventListener('click', function() {
     seccion4.classList.remove('d-none');
     seccion4.scrollIntoView();
 });
+
+// ------------------------------------------------------------
+// LÓGICA DE GENERACIÓN DE DOCUMENTOS PDF
+// ------------------------------------------------------------
+
+// 1. PDF NOTA DE ELEVACIÓN
+function generarPDFNotaElevacion() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Título Principal
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("NOTA DE ELEVACIÓN", 105, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Por la presente se eleva la solicitud y documentación de la Salida Educativa:", 14, 32);
+
+    // Contenido del Paso 1 (sin el archivo de proyecto)
+    const datosPaso1 = [
+        ["Destino del viaje:", document.getElementById('destino').value || '-'],
+        ["Lugar de salida:", document.getElementById('lugarSalida').value || '-'],
+        ["Lugar de regreso:", document.getElementById('lugarRegreso').value || '-'],
+        ["Cantidad de estudiantes:", document.getElementById('cantEstudiantes').value || '-'],
+        ["Cantidad de acompañantes:", document.getElementById('cantAcompanantes').value || '-'],
+        ["Modalidad de viaje:", checkboxSinPernocte.checked ? "SIN pernocte (Ida y vuelta en el día)" : "CON pernocte"],
+        ["Fecha de salida:", `${document.getElementById('fechaSalida').value || '-'} (${document.getElementById('horaSalida').value || '-'} hs)`],
+        ["Fecha de regreso:", `${document.getElementById('fechaRegreso').value || '-'} (${document.getElementById('horaRegreso').value || '-'} hs)`]
+    ];
+
+    if (!checkboxSinPernocte.checked) {
+        datosPaso1.push(
+            ["Nombre del alojamiento:", document.getElementById('nombreAlojamiento').value || '-'],
+            ["Domicilio del alojamiento:", document.getElementById('domicilioAlojamiento').value || '-'],
+            ["Teléfono del alojamiento:", document.getElementById('telefonoAlojamiento').value || '-']
+        );
+    }
+
+    doc.autoTable({
+        startY: 38,
+        head: [['Campo', 'Detalle']],
+        body: datosPaso1,
+        theme: 'striped',
+        headStyles: { fillColor: [13, 110, 253] },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } }
+    });
+
+    // Firma
+    const finalY = doc.lastAutoTable.finalY + 35;
+    doc.line(120, finalY, 190, finalY);
+    doc.text("Firma y Aclaración del Docente / Directivo", 155, finalY + 7, { align: "center" });
+
+    doc.save("Nota_de_Elevacion.pdf");
+}
+
+// 2. PDF NÓMINA DE ESTUDIANTES Y DOCENTES
+function generarPDFNomina() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const destino = document.getElementById('destino').value || 'Destino';
+    const fechaSalida = document.getElementById('fechaSalida').value || '';
+
+    // Encabezado
+    doc.setFontSize(15);
+    doc.setFont("helvetica", "bold");
+    doc.text("NÓMINA DE ESTUDIANTES Y DOCENTES ACOMPAÑANTES", 105, 18, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Salida Educativa a: ${destino} | Fecha de salida: ${fechaSalida}`, 105, 25, { align: "center" });
+
+    // Seccion Estudiantes
+    const checkboxes = document.querySelectorAll('.check-estudiante:checked');
+    const tablaEstudiantes = [];
+
+    checkboxes.forEach((cb, index) => {
+        const dni = cb.value;
+        const nombre = cb.getAttribute('data-nombre') || '-';
+        const curso = cb.getAttribute('data-curso') || '-';
+        const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
+        const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
+
+        const gs = selectGS ? selectGS.value : '';
+        const fechaNac = inputFecha ? inputFecha.value : '';
+
+        tablaEstudiantes.push([
+            index + 1,
+            nombre,
+            dni,
+            curso,
+            gs || 'No especificado',
+            fechaNac || 'No especificada'
+        ]);
+    });
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("1. Estudiantes Seleccionados", 14, 34);
+
+    doc.autoTable({
+        startY: 37,
+        head: [['#', 'Apellido y Nombre', 'DNI', 'Curso', 'G. Sanguíneo y RH', 'Fecha Nac.']],
+        body: tablaEstudiantes,
+        theme: 'grid',
+        headStyles: { fillColor: [25, 135, 84] },
+        styles: { fontSize: 8 }
+    });
+
+    // Seccion Docentes
+    const cardsDocentes = document.querySelectorAll('.card-docente-item');
+    const tablaDocentes = [];
+
+    cardsDocentes.forEach((card, index) => {
+        const dni = card.querySelector('.input-docente-dni')?.value || '-';
+        const apellido = card.querySelector('.input-docente-apellido')?.value || '';
+        const nombre = card.querySelector('.input-docente-nombre')?.value || '';
+        const telefono = card.querySelector('.input-docente-telefono')?.value || '-';
+
+        tablaDocentes.push([
+            index + 1,
+            `${apellido}, ${nombre}`,
+            dni,
+            telefono
+        ]);
+    });
+
+    const startDocentesY = doc.lastAutoTable.finalY + 12;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("2. Docentes Acompañantes", 14, startDocentesY);
+
+    doc.autoTable({
+        startY: startDocentesY + 3,
+        head: [['#', 'Apellido y Nombre', 'DNI', 'Teléfono de Contacto']],
+        body: tablaDocentes,
+        theme: 'grid',
+        headStyles: { fillColor: [13, 202, 240] },
+        styles: { fontSize: 9 }
+    });
+
+    doc.save("Nomina_Estudiantes_y_Docentes.pdf");
+}
 
 // ------------------------------------------------------------
 // LÓGICA DEL PASO 4: TRANSPORTE Y GUARDADO FINAL
@@ -474,7 +618,7 @@ inputsValidez.forEach(inputValidez => {
     });
 });
 
-// Al enviar el formulario final, recopilamos los datos médicos y los guardamos
+// Al enviar el formulario final, guardamos en base de datos Y descargamos los PDF
 formTransporte.addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -496,8 +640,7 @@ formTransporte.addEventListener('submit', async function(e) {
         const btnSubmit = formTransporte.querySelector('button[type="submit"]');
         const textoOriginal = btnSubmit.innerHTML;
         
-        // Bloqueamos el botón y mostramos que está guardando
-        btnSubmit.innerHTML = "⏳ Guardando datos en la nube...";
+        btnSubmit.innerHTML = "⏳ Guardando datos y generando PDFs...";
         btnSubmit.disabled = true;
 
         try {
@@ -519,7 +662,7 @@ formTransporte.addEventListener('submit', async function(e) {
                 }
             });
 
-            // Si hay datos para guardar, hacemos la petición POST a nuestra nueva API
+            // Guardar cambios en la base de datos Vercel
             if (datosAActualizar.length > 0) {
                 await fetch('/api/actualizar-estudiantes', {
                     method: 'POST',
@@ -528,7 +671,11 @@ formTransporte.addEventListener('submit', async function(e) {
                 });
             }
 
-            alert("🎉 ¡Excelente! La salida educativa ha sido validada y los datos médicos de los estudiantes se actualizaron en la base de datos.");
+            // Generar y descargar automáticamente ambos archivos PDF
+            generarPDFNotaElevacion();
+            generarPDFNomina();
+
+            alert("🎉 ¡Excelente! La salida educativa ha sido validada, la base de datos se actualizó y se han descargado ambos PDF en tu dispositivo.");
             location.reload(); 
         } catch(error) {
             console.error("Error al guardar:", error);
