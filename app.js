@@ -263,15 +263,18 @@ async function buscarAlumnosPorCurso(idCurso) {
 
             alumnosFiltrados.forEach(alumno => {
                 const gsGuardado = (alumno.grupo_sanguineo || '').trim();
+                
+                // Formateamos el curso para incluir la especialidad en el PDF
+                const descripcionCurso = `${alumno.ano} "${alumno.division}" - ${alumno.ciclo_especializacion}`;
 
                 const fila = `
                     <tr>
                         <td class="text-center">
-                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" data-nombre="${alumno.apellido_nombre}" data-curso="${alumno.ano}° '${alumno.division}'" onchange="validarEstudiantes()">
+                            <input class="form-check-input check-estudiante" type="checkbox" value="${alumno.dni}" data-nombre="${alumno.apellido_nombre}" data-curso="${descripcionCurso}" onchange="validarEstudiantes()">
                         </td>
                         <td>
                             <strong>${alumno.apellido_nombre}</strong><br>
-                            <small class="text-muted">DNI: ${alumno.dni} | ${alumno.ano}° "${alumno.division}"</small>
+                            <small class="text-muted">DNI: ${alumno.dni} | ${descripcionCurso}</small>
                         </td>
                         <td>${alumno.dni}</td>
                         <td>
@@ -421,12 +424,23 @@ btnSiguienteTransporte.addEventListener('click', function() {
 // ------------------------------------------------------------
 // LÓGICA DE GENERACIÓN DE UN ÚNICO PDF CONSOLIDADO (3 HOJAS)
 // ------------------------------------------------------------
+
+// Función auxiliar para formatear fechas a DD/MM/AAAA
+function formatearFechaDDMMAAAA(fechaISO) {
+    if (!fechaISO) return '-';
+    const partes = fechaISO.split('-');
+    if (partes.length !== 3) return fechaISO;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
 function generarPDFUnico() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const destino = document.getElementById('destino').value || 'Destino';
-    const fechaSalida = document.getElementById('fechaSalida').value || '';
+    // Valores en Mayúscula sostenida y fechas formateadas
+    const destino = (document.getElementById('destino').value || 'Destino').toUpperCase();
+    const fechaSalidaIso = document.getElementById('fechaSalida').value || '';
+    const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
 
     // ==========================================
     // HOJA 1: NOTA DE ELEVACIÓN
@@ -439,22 +453,24 @@ function generarPDFUnico() {
     doc.setFont("helvetica", "normal");
     doc.text("Por la presente se eleva la solicitud y documentación de la Salida Educativa:", 14, 32);
 
+    const modalidad = checkboxSinPernocte.checked ? "SIN PERNOCTE (IDA Y VUELTA EN EL DÍA)" : "CON PERNOCTE";
+    
     const datosPaso1 = [
-        ["Destino del viaje:", document.getElementById('destino').value || '-'],
-        ["Lugar de salida:", document.getElementById('lugarSalida').value || '-'],
-        ["Lugar de regreso:", document.getElementById('lugarRegreso').value || '-'],
+        ["Destino del viaje:", destino],
+        ["Lugar de salida:", (document.getElementById('lugarSalida').value || '-').toUpperCase()],
+        ["Lugar de regreso:", (document.getElementById('lugarRegreso').value || '-').toUpperCase()],
         ["Cantidad de estudiantes:", document.getElementById('cantEstudiantes').value || '-'],
         ["Cantidad de acompañantes:", document.getElementById('cantAcompanantes').value || '-'],
-        ["Modalidad de viaje:", checkboxSinPernocte.checked ? "SIN pernocte (Ida y vuelta en el día)" : "CON pernocte"],
-        ["Fecha de salida:", `${document.getElementById('fechaSalida').value || '-'} (${document.getElementById('horaSalida').value || '-'} hs)`],
-        ["Fecha de regreso:", `${document.getElementById('fechaRegreso').value || '-'} (${document.getElementById('horaRegreso').value || '-'} hs)`]
+        ["Modalidad de viaje:", modalidad],
+        ["Fecha de salida:", `${fechaSalidaFormat} (${document.getElementById('horaSalida').value || '-'} HS)`],
+        ["Fecha de regreso:", `${formatearFechaDDMMAAAA(document.getElementById('fechaRegreso').value)} (${document.getElementById('horaRegreso').value || '-'} HS)`]
     ];
 
     if (!checkboxSinPernocte.checked) {
         datosPaso1.push(
-            ["Nombre del alojamiento:", document.getElementById('nombreAlojamiento').value || '-'],
-            ["Domicilio del alojamiento:", document.getElementById('domicilioAlojamiento').value || '-'],
-            ["Teléfono del alojamiento:", document.getElementById('telefonoAlojamiento').value || '-']
+            ["Nombre del alojamiento:", (document.getElementById('nombreAlojamiento').value || '-').toUpperCase()],
+            ["Domicilio del alojamiento:", (document.getElementById('domicilioAlojamiento').value || '-').toUpperCase()],
+            ["Teléfono del alojamiento:", (document.getElementById('telefonoAlojamiento').value || '-').toUpperCase()]
         );
     }
 
@@ -482,15 +498,15 @@ function generarPDFUnico() {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalida}`, 105, 27, { align: "center" });
+    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalidaFormat}`, 105, 27, { align: "center" });
 
     const checkboxes = document.querySelectorAll('.check-estudiante:checked');
     const tablaEstudiantes = [];
 
     checkboxes.forEach((cb, index) => {
         const dni = cb.value;
-        const nombre = cb.getAttribute('data-nombre') || '-';
-        const curso = cb.getAttribute('data-curso') || '-';
+        const nombre = (cb.getAttribute('data-nombre') || '-').toUpperCase();
+        const curso = (cb.getAttribute('data-curso') || '-').toUpperCase(); // Ya viene con la especialidad del buscador
         const selectGS = document.querySelector(`.input-grupo-sanguineo[data-dni="${dni}"]`);
         const inputFecha = document.querySelector(`.input-fecha-nacimiento[data-dni="${dni}"]`);
 
@@ -502,14 +518,14 @@ function generarPDFUnico() {
             nombre,
             dni,
             curso,
-            gs || 'No especificado',
-            fechaNac || 'No especificada'
+            (gs || 'NO ESPECIFICADO').toUpperCase(),
+            formatearFechaDDMMAAAA(fechaNac)
         ]);
     });
 
     doc.autoTable({
         startY: 33,
-        head: [['#', 'Apellido y Nombre', 'DNI', 'Curso', 'G. Sanguíneo y RH', 'Fecha Nac.']],
+        head: [['#', 'Apellido y Nombre', 'DNI', 'Curso / Especialidad', 'G. Sanguíneo', 'Fecha Nac.']],
         body: tablaEstudiantes,
         theme: 'grid',
         headStyles: { fillColor: [25, 135, 84] },
@@ -527,15 +543,15 @@ function generarPDFUnico() {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalida}`, 105, 27, { align: "center" });
+    doc.text(`Destino: ${destino} | Fecha de salida: ${fechaSalidaFormat}`, 105, 27, { align: "center" });
 
     const cardsDocentes = document.querySelectorAll('.card-docente-item');
     const tablaDocentes = [];
 
     cardsDocentes.forEach((card, index) => {
         const dni = card.querySelector('.input-docente-dni')?.value || '-';
-        const apellido = card.querySelector('.input-docente-apellido')?.value || '';
-        const nombre = card.querySelector('.input-docente-nombre')?.value || '';
+        const apellido = (card.querySelector('.input-docente-apellido')?.value || '').toUpperCase();
+        const nombre = (card.querySelector('.input-docente-nombre')?.value || '').toUpperCase();
         const telefono = card.querySelector('.input-docente-telefono')?.value || '-';
 
         tablaDocentes.push([
@@ -555,7 +571,6 @@ function generarPDFUnico() {
         styles: { fontSize: 9 }
     });
 
-    // Descargar el documento único
     doc.save("Salida_Educativa_Documentacion_Completa.pdf");
 }
 
@@ -614,7 +629,6 @@ inputsValidez.forEach(inputValidez => {
     });
 });
 
-// Guardado final y generación del PDF unificado
 formTransporte.addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -640,7 +654,6 @@ formTransporte.addEventListener('submit', async function(e) {
         btnSubmit.disabled = true;
 
         try {
-            // Recopilar los datos de grupo sanguíneo y nacimiento de los estudiantes seleccionados
             const estudiantesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
             const datosAActualizar = [];
 
@@ -658,7 +671,6 @@ formTransporte.addEventListener('submit', async function(e) {
                 }
             });
 
-            // Actualizar en base de datos
             if (datosAActualizar.length > 0) {
                 await fetch('/api/actualizar-estudiantes', {
                     method: 'POST',
@@ -667,7 +679,6 @@ formTransporte.addEventListener('submit', async function(e) {
                 });
             }
 
-            // Generar y descargar el único PDF de 3 páginas
             generarPDFUnico();
 
             alert("🎉 ¡Excelente! La salida educativa ha sido registrada, la base de datos se actualizó y se descargó el PDF con las 3 hojas completas.");
