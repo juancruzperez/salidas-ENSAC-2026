@@ -275,7 +275,7 @@
 
     <div class="card shadow mb-4 d-none" id="seccion4-transporte">
         <div class="card-header bg-warning text-dark">
-            <h4 class="mb-0">Paso 4: Documentación del Transporte</h4>
+            <h4 class="mb-0">Paso 4: Documentación del Transporte y Cierre</h4>
         </div>
         <div class="card-body">
             <form id="formTransporte" novalidate>
@@ -331,7 +331,17 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-5 text-center border-top pt-4">
+
+                <div class="mt-4 p-3 bg-light border rounded">
+                    <h5 class="text-primary border-bottom pb-2 mb-3">Contacto de Notificación</h5>
+                    <div class="mb-2">
+                        <label for="emailDocenteOrganizador" class="form-label fw-bold">Correo electrónico del Docente Organizador *</label>
+                        <input type="email" class="form-control" id="emailDocenteOrganizador" placeholder="ejemplo@escuela.edu.ar" required>
+                        <small class="text-muted">Requisito obligatorio. A este correo se enviarán las notificaciones de sistema.</small>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center border-top pt-4">
                     <h5 class="mb-3">¡Todos los requerimientos han sido completados!</h5>
                     <button type="submit" class="btn btn-dark btn-lg px-5">
                         ✅ Validar y Guardar Salida Educativa

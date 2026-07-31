@@ -737,7 +737,6 @@ async function agregarImagenAPdf(finalDoc, arrayBuffer, mimeType) {
         image = await finalDoc.embedJpg(arrayBuffer);
     }
     
-    // Dimensiones estándar A4 en puntos (595.28 x 841.89)
     const page = finalDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
     
@@ -794,7 +793,7 @@ async function generarPDFUnico() {
     const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
 
     // ==========================================
-    // HOJA A: NOTA DE ELEVACIÓN (Sera Pagina 1)
+    // HOJA A: NOTA DE ELEVACIÓN
     // ==========================================
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
@@ -839,7 +838,7 @@ async function generarPDFUnico() {
     doc.text("Firma y Aclaración del Docente / Directivo", 155, finalY + 7, { align: "center" });
 
     // ==========================================
-    // HOJA B: NÓMINA DE ESTUDIANTES (Sera Pagina 3)
+    // HOJA B: NÓMINA DE ESTUDIANTES
     // ==========================================
     doc.addPage(); 
 
@@ -890,7 +889,7 @@ async function generarPDFUnico() {
     });
 
     // ==========================================
-    // HOJA C: NÓMINA DE ORGANIZADORES Y ACOMPAÑANTES (Sera Pagina 4)
+    // HOJA C: NÓMINA DE DOCENTES
     // ==========================================
     doc.addPage(); 
 
@@ -941,11 +940,9 @@ async function generarPDFUnico() {
     const basePdfDoc = await PDFDocument.load(jsPdfBuffer);
     const finalDoc = await PDFDocument.create();
 
-    // 1° NOTA DE ELEVACIÓN
     const [notaElevacionPage] = await finalDoc.copyPages(basePdfDoc, [0]);
     finalDoc.addPage(notaElevacionPage);
 
-    // 2° PROYECTO SUBIDO POR EL DOCENTE (PDF)
     const inputProyecto = document.getElementById('archivoProyecto');
     if (inputProyecto && inputProyecto.files && inputProyecto.files[0]) {
         const fileProyecto = inputProyecto.files[0];
@@ -955,15 +952,12 @@ async function generarPDFUnico() {
         projPages.forEach(p => finalDoc.addPage(p));
     }
 
-    // 3° NÓMINA DE ESTUDIANTES
     const [estudiantesPage] = await finalDoc.copyPages(basePdfDoc, [1]);
     finalDoc.addPage(estudiantesPage);
 
-    // 4° NÓMINA DE DOCENTES
     const [docentesPage] = await finalDoc.copyPages(basePdfDoc, [2]);
     finalDoc.addPage(docentesPage);
 
-    // 5° DOCUMENTACIÓN DE TRANSPORTE EN ORDEN
     const sinTransporte = document.getElementById('sinTransporte');
     if (sinTransporte && !sinTransporte.checked) {
         const inputsTrans = document.querySelectorAll('.input-transporte');
@@ -982,7 +976,6 @@ async function generarPDFUnico() {
         }
     }
 
-    // DESCARGAR PDF CONSOLIDADO
     const finalPdfBytes = await finalDoc.save();
     const blob = new Blob([finalPdfBytes], { type: 'application/pdf' });
     const link = document.createElement('a');
@@ -992,7 +985,7 @@ async function generarPDFUnico() {
 }
 
 // ------------------------------------------------------------
-// EXPORTAR INFORME EJECUTIVO COMPLETO A PDF (BACKUP FÍSICO)
+// EXPORTAR INFORME EJECUTIVO COMPLETO A PDF 
 // ------------------------------------------------------------
 async function exportarInformeEjecutivoPDF() {
     const { jsPDF } = window.jspdf;
@@ -1130,7 +1123,7 @@ if (formTransporte) {
             const textoOriginal = btnSubmit ? btnSubmit.innerHTML : '';
             
             if (btnSubmit) {
-                btnSubmit.innerHTML = "⏳ Ensamblando documentos y generando PDF...";
+                btnSubmit.innerHTML = "⏳ Ensamblando documentos y guardando...";
                 btnSubmit.disabled = true;
             }
 
@@ -1173,7 +1166,10 @@ if (formTransporte) {
                 });
                 const docenteOrganizadorConcatenado = nombresOrganizadoresArr.join('   ');
 
-                // 3. Registrar la salida educativa en la tabla 'salidas'
+                // 3. CAPTURAR EL CORREO DEL DOCENTE
+                const emailDocente = document.getElementById('emailDocenteOrganizador') ? document.getElementById('emailDocenteOrganizador').value.trim() : '';
+
+                // 4. Registrar la salida educativa
                 const destinoFinal = obtenerDestinoFormateado();
                 const payloadSalida = {
                     destinoFinal,
@@ -1185,9 +1181,10 @@ if (formTransporte) {
                     horaSalida: document.getElementById('horaSalida') ? document.getElementById('horaSalida').value : '',
                     fechaRegreso: document.getElementById('fechaRegreso') ? document.getElementById('fechaRegreso').value : '',
                     horaRegreso: document.getElementById('horaRegreso') ? document.getElementById('horaRegreso').value : '',
-                    sinPernocte: checkboxSinPernocte ? checkboxSinPernocte.checked : false,
+                    sinPernocte: document.getElementById('sinPernocte') ? document.getElementById('sinPernocte').checked : false,
                     nombreAlojamiento: document.getElementById('nombreAlojamiento') ? document.getElementById('nombreAlojamiento').value.trim() : '',
-                    docenteOrganizador: docenteOrganizadorConcatenado
+                    docenteOrganizador: docenteOrganizadorConcatenado,
+                    emailDocente: emailDocente
                 };
 
                 await fetch('/api/guardar-salida', {
@@ -1196,10 +1193,10 @@ if (formTransporte) {
                     body: JSON.stringify(payloadSalida)
                 });
 
-                // 4. Generar y ensamblar PDF consolidado con todos los adjuntos
+                // 5. Generar y ensamblar PDF consolidado con todos los adjuntos
                 await generarPDFUnico();
 
-                alert("🎉 ¡Excelente! La salida educativa ha sido registrada en el sistema, la base de datos se actualizó y se descargó el PDF unificado completo.");
+                alert("🎉 ¡Excelente! La salida educativa ha sido registrada y el PDF unificado fue generado.");
                 location.reload(); 
             } catch(error) {
                 console.error("Error al guardar:", error);
@@ -1212,7 +1209,7 @@ if (formTransporte) {
 
         } else {
             formTransporte.classList.add('was-validated');
-            alert("⚠️ Por favor, completa toda la documentación requerida del transporte o marca la casilla 'Sin transporte'.");
+            alert("⚠️ Por favor, completa toda la documentación requerida y verifica el formato del correo.");
         }
     });
 }
