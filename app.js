@@ -791,6 +791,10 @@ async function generarPDFUnico() {
     const destinoFinalFormateado = obtenerDestinoFormateado();
     const fechaSalidaIso = document.getElementById('fechaSalida') ? document.getElementById('fechaSalida').value : '';
     const fechaSalidaFormat = formatearFechaDDMMAAAA(fechaSalidaIso);
+    
+    // Capturar valor del transporte para imprimirlo en la nota
+    const selectTipoTransporte = document.getElementById('tipoTransporte');
+    const valorTransporte = selectTipoTransporte ? selectTipoTransporte.value : '';
 
     // ==========================================
     // HOJA A: NOTA DE ELEVACIÓN
@@ -822,6 +826,23 @@ async function generarPDFUnico() {
             ["Domicilio del alojamiento:", (document.getElementById('domicilioAlojamiento') ? document.getElementById('domicilioAlojamiento').value : '-').toUpperCase()],
             ["Teléfono del alojamiento:", (document.getElementById('telefonoAlojamiento') ? document.getElementById('telefonoAlojamiento').value : '-').toUpperCase()]
         );
+    }
+    
+    // Agregar datos de transporte al PDF dinámicamente
+    if (valorTransporte === 'PRIVADO') {
+        datosPaso1.push(["Transporte:", "Contratación Privada / Excursión"]);
+    } else if (valorTransporte === 'PUBLICO_PROPIO') {
+        datosPaso1.push(["Transporte:", "Público, Medios Propios o Caminata"]);
+    } else if (valorTransporte === 'LARGA_DISTANCIA') {
+        const empIda = document.getElementById('empresaIda') ? document.getElementById('empresaIda').value : '-';
+        const fIda = document.getElementById('diaSalidaIda') ? formatearFechaDDMMAAAA(document.getElementById('diaSalidaIda').value) : '-';
+        const hIda = document.getElementById('horaSalidaIda') ? document.getElementById('horaSalidaIda').value : '-';
+        datosPaso1.push(["Transporte Ida:", `Ómnibus: ${empIda.toUpperCase()} (${fIda} - ${hIda} HS)`]);
+        
+        const empReg = document.getElementById('empresaRegreso') ? document.getElementById('empresaRegreso').value : '-';
+        const fReg = document.getElementById('diaSalidaRegreso') ? formatearFechaDDMMAAAA(document.getElementById('diaSalidaRegreso').value) : '-';
+        const hReg = document.getElementById('horaSalidaRegreso') ? document.getElementById('horaSalidaRegreso').value : '-';
+        datosPaso1.push(["Transporte Regreso:", `Ómnibus: ${empReg.toUpperCase()} (${fReg} - ${hReg} HS)`]);
     }
 
     doc.autoTable({
@@ -958,8 +979,8 @@ async function generarPDFUnico() {
     const [docentesPage] = await finalDoc.copyPages(basePdfDoc, [2]);
     finalDoc.addPage(docentesPage);
 
-    const sinTransporte = document.getElementById('sinTransporte');
-    if (sinTransporte && !sinTransporte.checked) {
+    // SOLO ENSAMBLAMOS PDFs de Transporte SI ELIGIERON TRANSPORTE PRIVADO
+    if (valorTransporte === 'PRIVADO') {
         const inputsTrans = document.querySelectorAll('.input-transporte');
         for (const input of inputsTrans) {
             if (input.files && input.files[0]) {
@@ -1044,41 +1065,74 @@ async function exportarInformeEjecutivoPDF() {
 }
 
 // ------------------------------------------------------------
-// LÓGICA DEL PASO 4: TRANSPORTE Y GUARDADO FINAL
+// LÓGICA DEL PASO 4: TRANSPORTE, VALIDEZ Y GUARDADO FINAL
 // ------------------------------------------------------------
-const sinTransporte = document.getElementById('sinTransporte');
-const camposTransporte = document.getElementById('camposTransporte');
-const inputsTransporte = document.querySelectorAll('.input-transporte');
+const selectTipoTransporte = document.getElementById('tipoTransporte');
+const seccionTransportePrivado = document.getElementById('seccionTransportePrivado');
+const seccionLargaDistancia = document.getElementById('seccionLargaDistancia');
+
+const inputsPrivado = document.querySelectorAll('.input-transporte, .input-validez');
+const inputsLargaDistancia = document.querySelectorAll('.input-larga-distancia');
 const inputsValidez = document.querySelectorAll('.input-validez');
+
+const checkMismaEmpresa = document.getElementById('checkMismaEmpresa');
+const empresaIda = document.getElementById('empresaIda');
+const empresaRegreso = document.getElementById('empresaRegreso');
 const formTransporte = document.getElementById('formTransporte');
 
-function manejarSinTransporte() {
-    if (sinTransporte && sinTransporte.checked) {
-        if (camposTransporte) camposTransporte.style.display = 'none';
-        inputsTransporte.forEach(input => {
-            input.required = false;
-            input.value = ''; 
-        });
-        inputsValidez.forEach(input => {
-            input.required = false;
-            input.value = '';
-            if (input.nextElementSibling) input.nextElementSibling.classList.add('d-none');
-        });
-    } else {
-        if (camposTransporte) camposTransporte.style.display = 'block';
-        inputsTransporte.forEach(input => {
-            input.required = true;
-        });
-        inputsValidez.forEach(input => {
-            input.required = true;
-        });
+function manejarCambioTransporte() {
+    const valor = selectTipoTransporte ? selectTipoTransporte.value : '';
+    
+    // Ocultar paneles y remover requireds
+    if(seccionTransportePrivado) seccionTransportePrivado.classList.add('d-none');
+    if(seccionLargaDistancia) seccionLargaDistancia.classList.add('d-none');
+    
+    inputsPrivado.forEach(inp => { inp.required = false; inp.value = ''; });
+    inputsLargaDistancia.forEach(inp => { inp.required = false; inp.value = ''; });
+    document.querySelectorAll('.alerta-vencido').forEach(a => a.classList.add('d-none'));
+
+    // Limpiar switch de misma empresa
+    if(checkMismaEmpresa) checkMismaEmpresa.checked = false;
+    if(empresaRegreso) {
+        empresaRegreso.readOnly = false;
+        empresaRegreso.classList.remove('bg-light');
+    }
+
+    if (valor === 'PRIVADO') {
+        if(seccionTransportePrivado) seccionTransportePrivado.classList.remove('d-none');
+        inputsPrivado.forEach(inp => inp.required = true);
+    } else if (valor === 'LARGA_DISTANCIA') {
+        if(seccionLargaDistancia) seccionLargaDistancia.classList.remove('d-none');
+        inputsLargaDistancia.forEach(inp => inp.required = true);
     }
 }
 
-if (sinTransporte) {
-    sinTransporte.addEventListener('change', manejarSinTransporte);
+if (selectTipoTransporte) {
+    selectTipoTransporte.addEventListener('change', manejarCambioTransporte);
 }
 
+// Lógica de clonar empresa de ómnibus
+if (checkMismaEmpresa && empresaIda && empresaRegreso) {
+    checkMismaEmpresa.addEventListener('change', function() {
+        if (this.checked) {
+            empresaRegreso.value = empresaIda.value;
+            empresaRegreso.readOnly = true;
+            empresaRegreso.classList.add('bg-light');
+        } else {
+            empresaRegreso.value = '';
+            empresaRegreso.readOnly = false;
+            empresaRegreso.classList.remove('bg-light');
+        }
+    });
+
+    empresaIda.addEventListener('input', function() {
+        if (checkMismaEmpresa.checked) {
+            empresaRegreso.value = this.value;
+        }
+    });
+}
+
+// Lógica de validación de fechas de vencimiento (Solo si es Privado)
 inputsValidez.forEach(inputValidez => {
     inputValidez.addEventListener('change', function() {
         const fechaViajeStr = inputFechaSalida ? inputFechaSalida.value : '';
@@ -1105,7 +1159,7 @@ if (formTransporte) {
         e.preventDefault();
         
         let hayDocumentosVencidos = false;
-        if (sinTransporte && !sinTransporte.checked) {
+        if (selectTipoTransporte && selectTipoTransporte.value === 'PRIVADO') {
             document.querySelectorAll('.alerta-vencido').forEach(alerta => {
                 if (!alerta.classList.contains('d-none')) {
                     hayDocumentosVencidos = true;
@@ -1114,7 +1168,7 @@ if (formTransporte) {
         }
 
         if (hayDocumentosVencidos) {
-            alert("⚠️ No se puede registrar la salida: Hay documentos del transporte cuya fecha de validez es anterior al día del viaje (se encuentran vencidos).");
+            alert("⚠️ No se puede registrar la salida: Hay documentos del transporte privado cuya fecha de validez es anterior al día del viaje (vencidos).");
             return;
         }
 
@@ -1166,10 +1220,9 @@ if (formTransporte) {
                 });
                 const docenteOrganizadorConcatenado = nombresOrganizadoresArr.join('   ');
 
-                // 3. CAPTURAR EL CORREO DEL DOCENTE
                 const emailDocente = document.getElementById('emailDocenteOrganizador') ? document.getElementById('emailDocenteOrganizador').value.trim() : '';
 
-                // 4. Registrar la salida educativa
+                // 3. Registrar la salida educativa
                 const destinoFinal = obtenerDestinoFormateado();
                 const payloadSalida = {
                     destinoFinal,
@@ -1193,7 +1246,7 @@ if (formTransporte) {
                     body: JSON.stringify(payloadSalida)
                 });
 
-                // 5. Generar y ensamblar PDF consolidado con todos los adjuntos
+                // 4. Generar y ensamblar PDF consolidado con todos los adjuntos
                 await generarPDFUnico();
 
                 alert("🎉 ¡Excelente! La salida educativa ha sido registrada y el PDF unificado fue generado.");
@@ -1209,7 +1262,7 @@ if (formTransporte) {
 
         } else {
             formTransporte.classList.add('was-validated');
-            alert("⚠️ Por favor, completa toda la documentación requerida y verifica el formato del correo.");
+            alert("⚠️ Por favor, completa toda la información obligatoria (Correo, Selección de Transporte, etc.).");
         }
     });
 }

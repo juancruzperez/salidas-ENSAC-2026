@@ -279,70 +279,120 @@
         </div>
         <div class="card-body">
             <form id="formTransporte" novalidate>
-                <div class="form-check mb-4 bg-white p-3 border rounded">
-                    <input class="form-check-input" type="checkbox" id="sinTransporte">
-                    <label class="form-check-label fw-bold text-danger" for="sinTransporte" style="cursor: pointer;">
-                        Sin transporte (Traslado por medios propios, caminata o particulares)
-                    </label>
+                
+                <div class="mb-4 bg-white p-3 border rounded">
+                    <label class="form-label fw-bold text-dark fs-6 mb-3">Seleccione la Modalidad de Transporte *</label>
+                    <select class="form-select border-primary" id="tipoTransporte" required>
+                        <option value="">-- Despliegue para seleccionar --</option>
+                        <option value="PRIVADO">Excursiones o Contratación de Transporte Privado</option>
+                        <option value="LARGA_DISTANCIA">Ómnibus de Larga Distancia (Servicio Regular)</option>
+                        <option value="PUBLICO_PROPIO">Transporte público, por propios medios, caminata o particulares</option>
+                    </select>
                 </div>
-                <div id="camposTransporte">
-                    <div class="row mb-3 align-items-center">
-                        <div class="col-md-7">
-                            <label class="form-label fw-bold">Póliza de seguro (PDF o JPG)</label>
-                            <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png" required>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold">Válido hasta</label>
-                            <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
-                        </div>
+
+                <div id="seccionTransportePrivado" class="d-none">
+                    <div class="alert alert-secondary border">
+                        ⚠️ <strong>Atención:</strong> Al contratar un transporte privado, es obligatorio adjuntar la documentación de las unidades y choferes para el control institucional.
                     </div>
-                    <div class="row mb-3 align-items-center">
-                        <div class="col-md-7">
-                            <label class="form-label fw-bold">Habilitación de transporte (PDF o JPG)</label>
-                            <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png" required>
+                    <div id="camposTransporte">
+                        <div class="row mb-3 align-items-center">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold">Póliza de seguro (PDF o JPG)</label>
+                                <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold">Válido hasta</label>
+                                <input type="date" class="form-control input-validez">
+                                <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
+                            </div>
                         </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold">Válido hasta</label>
-                            <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
+                        <div class="row mb-3 align-items-center">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold">Habilitación de transporte (PDF o JPG)</label>
+                                <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold">Válido hasta</label>
+                                <input type="date" class="form-control input-validez">
+                                <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
+                            </div>
                         </div>
-                    </div>
-                    <div class="row mb-3 align-items-center">
-                        <div class="col-md-7">
-                            <label class="form-label fw-bold">Licencia de Conductor D-2 (PDF o JPG)</label>
-                            <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png" required>
+                        <div class="row mb-3 align-items-center">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold">Licencia de Conductor D-2 (PDF o JPG)</label>
+                                <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold">Válido hasta</label>
+                                <input type="date" class="form-control input-validez">
+                                <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
+                            </div>
                         </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold">Válido hasta</label>
-                            <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
-                        </div>
-                    </div>
-                    <div class="row mb-4 align-items-center">
-                        <div class="col-md-7">
-                            <label class="form-label fw-bold">Apto Psicofísico (PDF o JPG)</label>
-                            <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png" required>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold">Válido hasta</label>
-                            <input type="date" class="form-control input-validez" required>
-                            <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
+                        <div class="row mb-4 align-items-center">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold">Apto Psicofísico (PDF o JPG)</label>
+                                <input type="file" class="form-control input-transporte" accept=".pdf, .jpg, .jpeg, .png">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold">Válido hasta</label>
+                                <input type="date" class="form-control input-validez">
+                                <small class="text-danger fw-bold d-none alerta-vencido">⚠️ Vence antes de la fecha del viaje.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-4 p-3 bg-light border rounded">
+                <div id="seccionLargaDistancia" class="d-none bg-light p-3 border rounded mb-4">
+                    <h5 class="text-primary border-bottom pb-2 mb-3">Datos del Viaje en Ómnibus</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Empresa (Ida) *</label>
+                            <input type="text" class="form-control input-larga-distancia" id="empresaIda" placeholder="Ej: Chevallier">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Día de Salida *</label>
+                            <input type="date" class="form-control input-larga-distancia" id="diaSalidaIda">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Hora de Salida *</label>
+                            <input type="time" class="form-control input-larga-distancia" id="horaSalidaIda">
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3 mt-2 border p-2 bg-white rounded d-inline-block shadow-sm">
+                        <input class="form-check-input ms-1" type="checkbox" id="checkMismaEmpresa">
+                        <label class="form-check-label fw-bold text-success ms-2 me-2" for="checkMismaEmpresa" style="cursor: pointer;">
+                            🔄 El regreso se realiza con la misma empresa
+                        </label>
+                    </div>
+
+                    <div class="row pt-3 border-top mt-1">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Empresa (Regreso) *</label>
+                            <input type="text" class="form-control input-larga-distancia" id="empresaRegreso" placeholder="Ej: Chevallier">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Día de Regreso *</label>
+                            <input type="date" class="form-control input-larga-distancia" id="diaSalidaRegreso">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Hora de Regreso *</label>
+                            <input type="time" class="form-control input-larga-distancia" id="horaSalidaRegreso">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-white border rounded shadow-sm">
                     <h5 class="text-primary border-bottom pb-2 mb-3">Contacto de Notificación</h5>
                     <div class="mb-2">
                         <label for="emailDocenteOrganizador" class="form-label fw-bold">Correo electrónico del Docente Organizador *</label>
                         <input type="email" class="form-control" id="emailDocenteOrganizador" placeholder="ejemplo@escuela.edu.ar" required>
-                        <small class="text-muted">Requisito obligatorio. A este correo se enviarán las notificaciones de sistema.</small>
+                        <small class="text-muted">Requisito obligatorio. A este correo se enviará la confirmación del registro.</small>
                     </div>
                 </div>
 
                 <div class="mt-4 text-center border-top pt-4">
-                    <h5 class="mb-3">¡Todos los requerimientos han sido completados!</h5>
                     <button type="submit" class="btn btn-dark btn-lg px-5">
                         ✅ Validar y Guardar Salida Educativa
                     </button>
