@@ -6,9 +6,9 @@ const seccion2 = document.getElementById('seccion2-estudiantes');
 const seccion3 = document.getElementById('seccion3-docentes');
 const seccion4 = document.getElementById('seccion4-transporte');
 
-// ------------------------------------------------------------
+// ==========================================
 // LÓGICA DEL PASO 1: GESTIÓN
-// ------------------------------------------------------------
+// ==========================================
 const formGestion = document.getElementById('formGestion');
 const cantEstudiantes = document.getElementById('cantEstudiantes');
 const cantAcompanantes = document.getElementById('cantAcompanantes');
@@ -67,7 +67,11 @@ function validarCantidades() {
         if (cantAcompanantes) cantAcompanantes.min = 1;
         if (alertaAcompanantes) alertaAcompanantes.classList.add('d-none');
     }
-    validarEstudiantes();
+    
+    // Llamamos a la validación de estudiantes que ahora vive en estudiantes.js
+    if (typeof validarEstudiantes === 'function') {
+        validarEstudiantes();
+    }
     generarCamposDocentes();
 }
 
@@ -141,10 +145,9 @@ if (btnSiguienteEstudiantes) {
     });
 }
 
-
-// ------------------------------------------------------------
-// LÓGICA DEL PASO 3: DOCENTES (ORGANIZADORES Y ACOMPAÑANTES)
-// ------------------------------------------------------------
+// ==========================================
+// LÓGICA DEL PASO 3: DOCENTES
+// ==========================================
 const formDocentes = document.getElementById('formDocentes');
 const contenedorDocentesForm = document.getElementById('contenedorDocentesForm');
 const btnSiguienteTransporte = document.getElementById('btnSiguienteTransporte');
@@ -204,6 +207,8 @@ function generarCamposDocentes() {
 
     configurarListenersDocentes();
 }
+// Hacemos global la función para que estudiantes.js pueda llamarla
+window.generarCamposDocentes = generarCamposDocentes;
 
 function crearCardDocente(titulo, tipo, esRemovible) {
     return `
@@ -259,6 +264,7 @@ function cambiarOrganizadores(delta) {
     if (cantidadOrganizadoresActual > cantTotalDeclarada) cantidadOrganizadoresActual = cantTotalDeclarada;
     generarCamposDocentes();
 }
+window.cambiarOrganizadores = cambiarOrganizadores;
 
 function configurarListenersDocentes() {
     const inputsDocentes = document.querySelectorAll('.input-docente, .input-docente-gs');
@@ -309,10 +315,9 @@ if (btnSiguienteTransporte) {
     });
 }
 
-
-// ------------------------------------------------------------
-// LÓGICA DEL PASO 4: TRANSPORTE, VALIDEZ Y GUARDADO FINAL
-// ------------------------------------------------------------
+// ==========================================
+// LÓGICA DEL PASO 4: TRANSPORTE Y GUARDADO FINAL
+// ==========================================
 const selectTipoTransporte = document.getElementById('tipoTransporte');
 const seccionTransportePrivado = document.getElementById('seccionTransportePrivado');
 const seccionLargaDistancia = document.getElementById('seccionLargaDistancia');
@@ -357,7 +362,6 @@ if (selectTipoTransporte) {
     selectTipoTransporte.addEventListener('change', manejarCambioTransporte);
 }
 
-// Lógica de clonar empresa de ómnibus
 if (checkMismaEmpresa && empresaIda && empresaRegreso) {
     checkMismaEmpresa.addEventListener('change', function() {
         if (this.checked) {
@@ -378,7 +382,6 @@ if (checkMismaEmpresa && empresaIda && empresaRegreso) {
     });
 }
 
-// Lógica de validación de fechas de vencimiento (Solo si es Privado)
 inputsValidez.forEach(inputValidez => {
     inputValidez.addEventListener('change', function() {
         const fechaViajeStr = inputFechaSalida ? inputFechaSalida.value : '';
@@ -428,7 +431,7 @@ if (formTransporte) {
             }
 
             try {
-                // 1. Guardar datos médicos de estudiantes en base de datos
+                // 1. Guardar datos médicos de estudiantes
                 const estudiantesSeleccionados = document.querySelectorAll('.check-estudiante:checked');
                 const datosAActualizar = [];
 
@@ -454,7 +457,7 @@ if (formTransporte) {
                     });
                 }
 
-                // 2. Recopilar y concatenar docentes organizadores con espacios
+                // 2. Recopilar docentes
                 const cardsOrganizadores = document.querySelectorAll('.card-docente-item[data-tipo="organizador"]');
                 let nombresOrganizadoresArr = [];
                 cardsOrganizadores.forEach(card => {
@@ -468,8 +471,10 @@ if (formTransporte) {
 
                 const emailDocente = document.getElementById('emailDocenteOrganizador') ? document.getElementById('emailDocenteOrganizador').value.trim() : '';
 
-                // 3. Registrar la salida educativa
-                const destinoFinal = obtenerDestinoFormateado();
+                // 3. Registrar salida educativa
+                // Esta función vive en pdf.js
+                const destinoFinal = typeof obtenerDestinoFormateado === 'function' ? obtenerDestinoFormateado() : '';
+                
                 const payloadSalida = {
                     destinoFinal,
                     lugarSalida: document.getElementById('lugarSalida') ? document.getElementById('lugarSalida').value.trim() : '',
@@ -492,8 +497,10 @@ if (formTransporte) {
                     body: JSON.stringify(payloadSalida)
                 });
 
-                // 4. Generar y ensamblar PDF consolidado con todos los adjuntos
-                await generarPDFUnico();
+                // 4. Generar y ensamblar PDF consolidado con todos los adjuntos (Llamada a pdf.js)
+                if (typeof generarPDFUnico === 'function') {
+                    await generarPDFUnico();
+                }
 
                 alert("🎉 ¡Excelente! La salida educativa ha sido registrada y el PDF unificado fue generado.");
                 location.reload(); 
@@ -505,10 +512,9 @@ if (formTransporte) {
                     btnSubmit.disabled = false;
                 }
             }
-
         } else {
             formTransporte.classList.add('was-validated');
-            alert("⚠️ Por favor, completa toda la información obligatoria (Correo, Selección de Transporte, etc.).");
+            alert("⚠️ Por favor, completa toda la información obligatoria.");
         }
     });
 }
