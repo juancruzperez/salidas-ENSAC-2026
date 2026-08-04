@@ -10,7 +10,7 @@ module.exports = async function handler(request, response) {
     const { 
       destinoFinal, lugarSalida, lugarRegreso, cantEstudiantes, 
       cantAcompanantes, fechaSalida, horaSalida, fechaRegreso, 
-      horaRegreso, sinPernocte, nombreAlojamiento, docenteOrganizador 
+      horaRegreso, sinPernocte, nombreAlojamiento, docenteOrganizador, emailDocente 
     } = request.body;
 
     // 1. Insertar registro en la base de datos Vercel Postgres
@@ -47,6 +47,7 @@ module.exports = async function handler(request, response) {
     const mailOptionsSecretaria = {
       from: `"Sistema de Salidas Educativas" <${process.env.GMAIL_USER}>`,
       to: 'juanceprez@gmail.com', // Dirección fija para pruebas
+      cc: emailDocente,
       subject: `${docenteOrgTexto} ha generado una salida nueva`,
       html: `
         <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
