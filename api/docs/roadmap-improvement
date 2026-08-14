@@ -1,0 +1,1171 @@
+# 1. Hardening de autenticación y autorización
+
+Este es el **P0**.
+
+Actualmente el login consulta directamente usuario y contraseña en la BD.
+
+Además, el frontend guarda información de sesión en `localStorage`.
+
+### 1.1. Analizar modelo actual de usuarios
+
+* Revisar tabla `usuarios`.
+* Identificar roles existentes.
+* Identificar usuarios existentes.
+* Determinar qué operaciones puede realizar cada rol.
+
+Propuesta:
+
+```text
+admin
+secretaria
+direccion
+docente
+```
+
+### 1.2. Diseñar autenticación
+
+Decidir entre:
+
+* cookies de sesión HTTP-only;
+* JWT + cookie HTTP-only;
+* proveedor externo.
+
+Para esta aplicación yo priorizaría **sesión server-side/cookie HTTP-only** antes que inventar un sistema JWT innecesariamente complejo.
+
+### 1.3. Contraseñas
+
+Migrar:
+
+```text
+password
+```
+
+a:
+
+```text
+password_hash
+```
+
+utilizando hashing seguro.
+
+Nunca volver a almacenar contraseñas en texto plano.
+
+### 1.4. Crear API de sesión
+
+Por ejemplo:
+
+```text
+POST /api/login
+GET  /api/session
+POST /api/logout
+```
+
+### 1.5. Middleware de autorización
+
+Crear una función reutilizable:
+
+```text
+requireAuth()
+requireRole()
+```
+
+Conceptualmente:
+
+```text
+request
+   ↓
+¿sesión válida?
+   ↓
+¿rol autorizado?
+   ↓
+controller
+   ↓
+database
+```
+
+### 1.6. Proteger APIs
+
+Aplicar autorización a:
+
+```text
+/api/salidas
+/api/estudiantes
+/api/guardar-salida
+/api/actualizar-estudiantes
+```
+
+### 1.7. Eliminar confianza en frontend
+
+Nunca:
+
+```js
+if (user.role === "admin")
+```
+
+como mecanismo de seguridad.
+
+Eso solamente controla UI.
+
+La seguridad debe estar en:
+
+```text
+API → autorización → operación
+```
+
+### 1.8. Logout real
+
+Eliminar:
+
+```text
+localStorage.usuarioSesion
+```
+
+como mecanismo de autenticación.
+
+### 1.9. Protección contra ataques básicos
+
+Evaluar:
+
+* rate limiting del login;
+* mensajes de error no reveladores;
+* CSRF si corresponde al mecanismo elegido;
+* expiración de sesión;
+* renovación de sesión;
+* cookies `HttpOnly`;
+* `Secure`;
+* `SameSite`.
+
+### 1.10. Tests de seguridad
+
+Probar:
+
+```text
+sin sesión → 401
+docente → no puede acceder a endpoints administrativos
+secretaria → puede acceder a informes
+admin → acceso administrativo
+sesión vencida → 401
+logout → sesión inválida
+```
+
+**Definition of Done:**
+
+> Ninguna operación protegida puede ejecutarse simplemente llamando directamente a `/api/...` sin autorización válida.
+
+---
+
+# 2. Validación server-side e integridad de datos
+
+Actualmente mucha lógica importante está en JavaScript del navegador.
+
+Ejemplo: mínimo de acompañantes.
+
+Eso debe replicarse en backend.
+
+### 2.1. Definir reglas de negocio
+
+Documentar reglas:
+
+```text
+estudiantes >= 1
+
+acompañantes >= ceil(estudiantes / 10)
+
+fecha regreso >= fecha salida
+
+si misma fecha:
+hora regreso > hora salida
+
+sin pernocte:
+fecha regreso = fecha salida
+
+con pernocte:
+alojamiento obligatorio
+
+salida local:
+no requiere país/provincia/ciudad
+```
+
+### 2.2. Validación de tipos
+
+Validar:
+
+* strings;
+* números;
+* fechas;
+* horarios;
+* booleanos;
+* enums.
+
+### 2.3. Sanitización
+
+Nunca confiar en:
+
+```js
+req.body
+```
+
+### 2.4. Validación del archivo PDF
+
+Actualmente el frontend exige PDF mediante:
+
+```html
+accept=".pdf"
+```
+
+pero eso **no constituye validación de seguridad**.
+
+Validar backend:
+
+* extensión;
+* MIME;
+* tamaño;
+* contenido;
+* nombre;
+* almacenamiento.
+
+### 2.5. Transacciones
+
+La creación de una salida debería ser consistente:
+
+```text
+validar
+ ↓
+guardar salida
+ ↓
+guardar estudiantes
+ ↓
+guardar docentes
+ ↓
+guardar transporte
+ ↓
+guardar documentación
+ ↓
+commit
+```
+
+Si falla una parte:
+
+```text
+rollback
+```
+
+### 2.6. Estados
+
+Definir estados formales:
+
+```text
+BORRADOR
+PRESENTADA
+EN_REVISION
+OBSERVADA
+APROBADA
+RECHAZADA
+FINALIZADA
+```
+
+### 2.7. Auditoría
+
+Guardar:
+
+```text
+created_at
+created_by
+updated_at
+updated_by
+```
+
+y eventualmente:
+
+```text
+audit_log
+```
+
+**Definition of Done:**
+
+> Un usuario malicioso no puede crear una salida inválida manipulando directamente la API.
+
+---
+
+# 3. Limpieza y calidad del repositorio
+
+### 3.1. Eliminar `node_modules`
+
+No debe estar en Git.
+
+### 3.2. Mejorar `.gitignore`
+
+Como mínimo:
+
+```text
+node_modules/
+.vercel/
+.env
+.env.*
+!.env.example
+coverage/
+.DS_Store
+```
+
+### 3.3. Revisar secretos
+
+Buscar:
+
+```text
+password
+API_KEY
+SECRET
+TOKEN
+GMAIL
+DATABASE
+```
+
+y comprobar que no haya credenciales reales versionadas.
+
+### 3.4. Crear `.env.example`
+
+Ejemplo:
+
+```text
+POSTGRES_URL=
+GMAIL_USER=
+GMAIL_APP_PASSWORD=
+SESSION_SECRET=
+```
+
+Sin valores reales.
+
+### 3.5. `package.json`
+
+Agregar:
+
+```text
+scripts
+```
+
+por ejemplo:
+
+```json
+{
+  "scripts": {
+    "dev": "...",
+    "test": "...",
+    "lint": "...",
+    "format": "..."
+  }
+}
+```
+
+### 3.6. Revisar dependencias
+
+Detectar:
+
+* dependencias obsoletas;
+* vulnerabilidades;
+* dependencias innecesarias.
+
+### 3.7. Eliminar archivos muertos
+
+Por ejemplo el actual `test.js`, que prácticamente no contiene pruebas.
+
+**Definition of Done:**
+
+> El repositorio contiene únicamente código fuente, configuración y documentación necesarios.
+
+---
+
+# 4. Testing real
+
+Este paso es fundamental porque nos permitirá hacer los siguientes sin miedo.
+
+### 4.1. Elegir framework
+
+Podemos evaluar:
+
+```text
+Vitest
+```
+
+para lógica JS/API.
+
+Y posteriormente:
+
+```text
+Playwright
+```
+
+para E2E.
+
+### 4.2. Tests unitarios
+
+Primero funciones puras:
+
+```text
+calcularMinimoAcompanantes()
+validarFechas()
+validarHorario()
+formatearFecha()
+obtenerDestinoFormateado()
+```
+
+### 4.3. Tests de validación
+
+Casos:
+
+```text
+10 estudiantes → 1 acompañante
+11 estudiantes → 2 acompañantes
+20 estudiantes → 2 acompañantes
+21 estudiantes → 3 acompañantes
+```
+
+### 4.4. Tests API
+
+```text
+login
+session
+logout
+estudiantes
+salidas
+guardar salida
+```
+
+### 4.5. Tests de autorización
+
+Especialmente:
+
+```text
+401
+403
+200
+```
+
+### 4.6. Tests E2E
+
+Flujo completo:
+
+```text
+login
+ ↓
+crear salida
+ ↓
+seleccionar estudiantes
+ ↓
+agregar docentes
+ ↓
+seleccionar transporte
+ ↓
+generar PDF
+ ↓
+guardar
+```
+
+### 4.7. CI
+
+GitHub Actions:
+
+```text
+push
+ ↓
+npm install
+ ↓
+lint
+ ↓
+test
+ ↓
+build/check
+```
+
+**Definition of Done:**
+
+> Un PR que rompe una funcionalidad crítica no puede pasar CI.
+
+---
+
+# 5. Refactor del frontend
+
+Acá recién empezaría a atacar la arquitectura.
+
+Actualmente `app.js` concentra muchas responsabilidades.
+
+### 5.1. Separar dominio de UI
+
+Por ejemplo:
+
+```text
+src/
+├── api/
+├── auth/
+├── domain/
+├── forms/
+├── pdf/
+├── ui/
+└── utils/
+```
+
+### 5.2. Separar API
+
+Crear:
+
+```text
+apiClient.js
+authApi.js
+salidasApi.js
+estudiantesApi.js
+```
+
+### 5.3. Separar validaciones
+
+```text
+validators/
+├── salida.js
+├── estudiante.js
+├── docente.js
+└── transporte.js
+```
+
+### 5.4. Eliminar globals
+
+Reducir:
+
+```js
+window.generarCamposDocentes
+window.buscarAlumnosPorCurso
+window.cambiarOrganizadores
+```
+
+### 5.5. Eliminar `onclick`
+
+Pasar de:
+
+```html
+onclick="buscarAlumnosPorCurso(1)"
+```
+
+a listeners JS.
+
+### 5.6. Estado central
+
+Crear un modelo:
+
+```js
+salidaActual
+```
+
+con:
+
+```text
+gestion
+estudiantes
+docentes
+transporte
+documentacion
+```
+
+### 5.7. Componentizar pasos
+
+Conceptualmente:
+
+```text
+SalidaForm
+ ├── GestionStep
+ ├── EstudiantesStep
+ ├── DocentesStep
+ ├── TransporteStep
+ └── ReviewStep
+```
+
+### 5.8. Manejo uniforme de errores
+
+Eliminar progresivamente:
+
+```js
+alert(...)
+```
+
+y utilizar un sistema de feedback consistente.
+
+**Definition of Done:**
+
+> Cada módulo tiene una responsabilidad clara y cambiar una parte no obliga a modificar código no relacionado.
+
+---
+
+# 6. UX, estados y accesibilidad
+
+Una vez estabilizada la arquitectura.
+
+### 6.1. Wizard real
+
+Mostrar:
+
+```text
+1 Gestión
+2 Estudiantes
+3 Docentes
+4 Transporte
+5 Revisión
+```
+
+### 6.2. Indicador de progreso
+
+Ejemplo:
+
+```text
+●━━━━○━━━━○━━━━○
+Gestión
+```
+
+### 6.3. Guardado temporal
+
+Permitir:
+
+```text
+Guardar borrador
+Continuar después
+```
+
+### 6.4. Recuperación ante errores
+
+Si falla una API:
+
+```text
+❌ No pudimos guardar la salida.
+[Reintentar]
+```
+
+No perder todo el formulario.
+
+### 6.5. Loading states
+
+Botones:
+
+```text
+Buscar estudiantes...
+Guardando...
+Generando PDF...
+```
+
+### 6.6. Validación inline
+
+En lugar de descubrir todos los errores al final.
+
+### 6.7. Accesibilidad
+
+Revisar:
+
+* labels;
+* focus;
+* keyboard navigation;
+* contraste;
+* mensajes ARIA;
+* tablas;
+* formularios.
+
+### 6.8. Responsive
+
+Especialmente:
+
+```text
+desktop
+tablet
+celular
+```
+
+**Definition of Done:**
+
+> Un docente puede completar el trámite sin necesitar conocimientos técnicos y sin perder información ante un error de red.
+
+---
+
+# 7. Panel administrativo
+
+Acá podemos transformar la aplicación de "formulario" en **sistema de gestión**.
+
+### 7.1. Dashboard
+
+Indicadores:
+
+```text
+Total
+Pendientes
+En revisión
+Aprobadas
+Observadas
+Rechazadas
+```
+
+### 7.2. Filtros
+
+Por:
+
+```text
+fecha
+estado
+docente
+destino
+curso
+turno
+modalidad
+```
+
+### 7.3. Búsqueda
+
+Buscar por:
+
+```text
+ID
+docente
+destino
+DNI
+```
+
+### 7.4. Detalle de salida
+
+Una salida debería tener:
+
+```text
+Información general
+Estudiantes
+Docentes
+Transporte
+Alojamiento
+Documentación
+Historial
+```
+
+### 7.5. Workflow administrativo
+
+```text
+PRESENTADA
+     ↓
+EN REVISIÓN
+     ↓
+ ┌───┴────┐
+ ↓        ↓
+APROBADA  OBSERVADA
+             ↓
+          CORRECCIÓN
+             ↓
+          EN REVISIÓN
+```
+
+### 7.6. Acciones por rol
+
+```text
+Docente:
+crear / consultar propias
+
+Secretaría:
+revisar / observar / aprobar
+
+Dirección:
+supervisar / aprobar
+
+Admin:
+gestionar sistema
+```
+
+### 7.7. Auditoría
+
+Mostrar:
+
+```text
+13:42 — Juan creó solicitud
+14:10 — Secretaría la revisó
+14:22 — Secretaría solicitó documentación
+15:03 — Juan actualizó documentación
+```
+
+---
+
+# 8. Generación documental y PDF
+
+Actualmente el PDF se arma directamente desde el DOM.
+
+Eso funciona, pero podemos hacerlo mucho más robusto.
+
+### 8.1. Modelo documental
+
+Primero construir:
+
+```js
+salidaDocumentData
+```
+
+y luego generar documentos.
+
+No:
+
+```text
+DOM → PDF
+```
+
+sino:
+
+```text
+DB/modelo
+   ↓
+documentData
+   ↓
+PDF
+```
+
+### 8.2. Plantilla institucional
+
+Definir:
+
+* encabezado;
+* logo;
+* numeración;
+* tipografía;
+* márgenes;
+* firmas;
+* pie institucional.
+
+### 8.3. Documentos separados
+
+Por ejemplo:
+
+```text
+01 Nota de elevación
+02 Nómina estudiantes
+03 Nómina docentes
+04 Transporte
+05 Documentación
+```
+
+### 8.4. PDF consolidado
+
+Luego:
+
+```text
+Solicitud completa.pdf
+```
+
+### 8.5. Versionado documental
+
+```text
+Solicitud #123
+v1
+v2
+v3
+```
+
+### 8.6. Integridad
+
+Guardar:
+
+```text
+generated_at
+generated_by
+version
+```
+
+---
+
+# 9. Performance
+
+No optimizaría antes de tener tests y arquitectura estable.
+
+### 9.1. Base de datos
+
+Revisar queries.
+
+Actualmente estudiantes se consultan dinámicamente con SQL.
+
+Agregar índices adecuados:
+
+```text
+dni
+turno
+ano
+division
+ciclo_especializacion
+```
+
+### 9.2. Salidas
+
+Índices:
+
+```text
+fecha_salida
+estado
+docente
+destino
+```
+
+### 9.3. Paginación
+
+No devolver:
+
+```text
+SELECT * FROM salidas
+```
+
+para siempre.
+
+Actualmente `/api/salidas` hace justamente eso.
+
+Pasar a:
+
+```text
+?page=1
+&limit=25
+```
+
+### 9.4. API
+
+Reducir payloads.
+
+En vez de:
+
+```sql
+SELECT *
+```
+
+seleccionar campos concretos.
+
+### 9.5. Frontend
+
+Revisar:
+
+* JS;
+* CSS;
+* librerías CDN;
+* PDF libraries;
+* imágenes.
+
+### 9.6. Caché
+
+Evaluar caché de datos relativamente estáticos, como estudiantes.
+
+### 9.7. Performance testing
+
+Medir:
+
+```text
+TTFB
+LCP
+JS execution
+API latency
+DB latency
+```
+
+---
+
+# 10. Nuevas funcionalidades
+
+**Este paso es deliberadamente el último.**
+
+Una vez que los nueve anteriores estén razonablemente consolidados, recién ahí agregaría features.
+
+### 10.1. Notificaciones
+
+```text
+Nueva solicitud
+Solicitud observada
+Solicitud aprobada
+```
+
+### 10.2. Seguimiento de estado
+
+Docente:
+
+```text
+Solicitud #152
+
+✓ Presentada
+✓ En revisión
+● Observada
+○ Aprobada
+```
+
+### 10.3. Historial
+
+Cada modificación queda registrada.
+
+### 10.4. Documentación digital
+
+Repositorio de:
+
+```text
+proyecto
+autorizaciones
+PDF
+seguros
+transporte
+etc.
+```
+
+### 10.5. Exportación
+
+```text
+PDF
+Excel/CSV
+```
+
+### 10.6. Reportes
+
+Por ejemplo:
+
+```text
+salidas por mes
+salidas por destino
+cantidad de estudiantes
+cantidad de docentes
+salidas por turno
+```
+
+### 10.7. Calendario institucional
+
+Vista:
+
+```text
+Agosto 2026
+
+18 — Museo...
+21 — Reserva...
+27 — Córdoba...
+```
+
+### 10.8. Alertas administrativas
+
+Ejemplo:
+
+```text
+⚠ 3 solicitudes pendientes de revisión
+⚠ 2 salidas próximas sin aprobación
+⚠ documentación incompleta
+```
+
+### 10.9. Auditoría avanzada
+
+Panel:
+
+```text
+Quién
+Qué
+Cuándo
+Desde dónde
+```
+
+### 10.10. Evolución hacia sistema institucional
+
+Eventualmente:
+
+```text
+SALIDAS ENSAC
+│
+├── Solicitudes
+├── Estudiantes
+├── Docentes
+├── Transporte
+├── Documentación
+├── Aprobaciones
+├── Reportes
+└── Auditoría
+```
+
+---
+
+# Orden operativo que propongo
+
+No haría simplemente `1 → 2 → 3...` sin checkpoints.
+
+Trabajaría así:
+
+```text
+FASE 0
+Preparación
+   ↓
+CHECKPOINT
+
+FASE 1
+Seguridad
+   ↓
+CHECKPOINT
+
+FASE 2
+Validación + integridad
+   ↓
+CHECKPOINT
+
+FASE 3
+Limpieza repo
+   ↓
+CHECKPOINT
+
+FASE 4
+Testing + CI
+   ↓
+CHECKPOINT
+
+FASE 5
+Refactor
+   ↓
+CHECKPOINT
+
+FASE 6
+UX
+   ↓
+CHECKPOINT
+
+FASE 7
+Administración
+   ↓
+CHECKPOINT
+
+FASE 8
+PDF / documentación
+   ↓
+CHECKPOINT
+
+FASE 9
+Performance
+   ↓
+CHECKPOINT
+
+FASE 10
+Features
+```
+
+Y cada checkpoint debería responder **sí/no** a:
+
+```text
+¿Funciona?
+¿Los tests pasan?
+¿Hay regresiones?
+¿La seguridad está cubierta?
+¿El código quedó mejor que antes?
+¿Podemos explicar el cambio en un commit?
+```
+
+## Regla de trabajo
+
+Para cada subtarea vamos a utilizar esta secuencia:
+
+**1. Diagnóstico → 2. Comando PowerShell → 3. Cambio → 4. Test → 5. Git diff → 6. Commit → 7. Siguiente subtarea.**
+
+No voy a hacer una modificación masiva de 20 archivos y después decirte "listo". La idea es que podamos **entender y auditar cada cambio**.
+
+Y, dado el contexto que planteaste anteriormente, voy a aplicar un criterio bastante estricto: **si una solución es más compleja de lo necesario, no la incorporamos; si una decisión afecta seguridad o integridad de datos, primero la justificamos.**
+
+### Primer objetivo concreto
+
+Empezaría por **Fase 0.1 — establecer la línea base desde PowerShell**. Antes de modificar absolutamente nada, vamos a comprobar:
+
+```text
+Git
+Node
+npm
+GitHub CLI
+rama actual
+estado del working tree
+dependencias
+estructura
+variables de entorno
+tests existentes
+```
+
+Ese será nuestro **punto cero reproducible**.
