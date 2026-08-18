@@ -891,6 +891,201 @@ test('35 - docente puede crear una salida', async () => {
 });
 /*
  * ---------------------------------------------------------------------------
+ * 36 - VALIDACIÓN SERVER-SIDE / ESTUDIANTES
+ * ---------------------------------------------------------------------------
+ */
+
+test('36 - guardar salida rechaza cantidad de estudiantes inválida', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Validación estudiantes',
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 0,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+    assert.equal(
+        result.body.error,
+        'Los datos de la salida no son válidos.'
+    );
+    assert.ok(
+        result.body.details.some(
+            (error) => error.includes('estudiantes')
+        )
+    );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 37 - VALIDACIÓN SERVER-SIDE / ACOMPAÑANTES
+ * ---------------------------------------------------------------------------
+ */
+
+test('37 - guardar salida rechaza acompañantes insuficientes', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Validación acompañantes',
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 21,
+            cantAcompanantes: 2,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+    assert.equal(
+        result.body.error,
+        'Los datos de la salida no son válidos.'
+    );
+    assert.ok(
+        result.body.details.some(
+            (error) => error.includes('acompañantes')
+        )
+    );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 38 - VALIDACIÓN SERVER-SIDE / FECHAS Y HORARIOS
+ * ---------------------------------------------------------------------------
+ */
+
+test('38 - guardar salida rechaza regreso anterior a la salida', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Validación fechas',
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 10,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-02',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+    assert.equal(
+        result.body.error,
+        'Los datos de la salida no son válidos.'
+    );
+    assert.ok(
+        result.body.details.some(
+            (error) => error.includes('fecha de regreso')
+        )
+    );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 39 - VALIDACIÓN SERVER-SIDE / PERNOCTE
+ * ---------------------------------------------------------------------------
+ */
+
+test('39 - guardar salida con pernocte exige alojamiento', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Validación alojamiento',
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 10,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-02',
+            horaRegreso: '18:00',
+            sinPernocte: false,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+    assert.equal(
+        result.body.error,
+        'Los datos de la salida no son válidos.'
+    );
+    assert.ok(
+        result.body.details.some(
+            (error) => error.includes('alojamiento')
+        )
+    );
+});
+/*
+ * ---------------------------------------------------------------------------
  * 36 - LOGOUT / INVALIDACIÓN DE SESIÓN
  * ---------------------------------------------------------------------------
  */

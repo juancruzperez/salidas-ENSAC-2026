@@ -1,14 +1,17 @@
-const { sql } = require('@vercel/postgres');
+﻿const { sql } = require('@Vercel/postgres');
 const nodemailer = require('nodemailer');
 const {
     requireSameOrigin,
     requirePermission
 } = require('./lib/auth');
+const {
+    validateSalida
+} = require('./lib/validation/salida');
 
 module.exports = async function handler(request, response) {
     if (request.method !== 'POST') {
         return response.status(405).json({
-            error: 'Método no permitido'
+            error: 'MÃ©todo no permitido'
         });
     }
 
@@ -47,6 +50,24 @@ module.exports = async function handler(request, response) {
             docenteOrganizador,
             emailDocente
         } = request.body || {};
+
+        const validation = validateSalida({
+            cantEstudiantes,
+            cantAcompanantes,
+            fechaSalida,
+            horaSalida,
+            fechaRegreso,
+            horaRegreso,
+            sinPernocte,
+            nombreAlojamiento
+        });
+
+        if (!validation.valid) {
+            return response.status(400).json({
+                error: 'Los datos de la salida no son válidos.',
+                details: validation.errors
+            });
+        }
 
         const result = await sql`
             INSERT INTO salidas (
@@ -100,7 +121,7 @@ module.exports = async function handler(request, response) {
             : '-';
 
         const modalidadTexto = sinPernocte
-            ? 'SIN PERNOCTE (Ida y vuelta en el día)'
+            ? 'SIN PERNOCTE (Ida y vuelta en el dÃ­a)'
             : 'CON PERNOCTE';
 
         const destinatarioSecretaria =
@@ -116,12 +137,12 @@ module.exports = async function handler(request, response) {
             html: `
                 <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
                     <h2 style="color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 8px;">
-                        📄 Resumen Ejecutivo: Nueva Salida Educativa #${idSalida}
+                        ðŸ“„ Resumen Ejecutivo: Nueva Salida Educativa #${idSalida}
                     </h2>
 
                     <p>
                         Se ha registrado una nueva solicitud de Salida Educativa en el sistema.
-                        A continuación los datos más relevantes:
+                        A continuaciÃ³n los datos mÃ¡s relevantes:
                     </p>
 
                     <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
@@ -192,7 +213,7 @@ module.exports = async function handler(request, response) {
 
                         <tr>
                             <td style="padding: 10px; font-weight: bold; border: 1px solid #dee2e6;">
-                                Cantidad de Acompañantes:
+                                Cantidad de AcompaÃ±antes:
                             </td>
                             <td style="padding: 10px; border: 1px solid #dee2e6;">
                                 ${cantAcompanantes}
@@ -202,8 +223,8 @@ module.exports = async function handler(request, response) {
 
                     <div style="margin-top: 25px; padding: 12px; background-color: #e7f1ff; border-left: 4px solid #0d6efd; border-radius: 4px;">
                         <p style="margin: 0; font-size: 14px; color: #084298;">
-                            ℹ️ Puede consultar la documentación completa ingresando al
-                            <strong>Panel de Resúmenes Ejecutivos</strong> en la plataforma.
+                            â„¹ï¸ Puede consultar la documentaciÃ³n completa ingresando al
+                            <strong>Panel de ResÃºmenes Ejecutivos</strong> en la plataforma.
                         </p>
                     </div>
                 </div>
