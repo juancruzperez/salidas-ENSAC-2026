@@ -4,7 +4,7 @@ const { requirePermission } = require('./lib/auth');
 module.exports = async function handler(request, response) {
     if (request.method !== 'GET') {
         return response.status(405).json({
-            error: 'MÃ©todo no permitido'
+            error: 'Método no permitido'
         });
     }
 
