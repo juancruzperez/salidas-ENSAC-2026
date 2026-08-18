@@ -1,4 +1,4 @@
-﻿const crypto = require('node:crypto');
+const crypto = require('node:crypto');
 const { sql } = require('@vercel/postgres');
 
 const SESSION_COOKIE_NAME = 'session';
@@ -165,3 +165,4 @@ module.exports = {
     getSessionToken,
     hashSessionToken
 };
+

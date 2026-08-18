@@ -71,6 +71,7 @@ if (!USERS.direccion.username || !USERS.direccion.password) {
 function buildHeaders(extra = {}) {
     return {
         'Content-Type': 'application/json',
+        Origin: new URL(BASE_URL).origin,
         'x-vercel-protection-bypass': BYPASS,
         ...extra
     };
@@ -960,4 +961,114 @@ test('38 - logout rechaza métodos distintos de POST', async () => {
 
     assert.equal(result.status, 405);
     assert.equal(result.body.error, 'Método no permitido.');
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 39 - CSRF / GUARDAR SALIDA SIN ORIGIN
+ * ---------------------------------------------------------------------------
+ */
+
+test('39 - guardar salida rechaza petición sin Origin', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie,
+            Origin: undefined
+        },
+        body: JSON.stringify({})
+    });
+
+    assert.equal(result.status, 403);
+    assert.equal(result.body.error, 'Origen no permitido.');
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 40 - CSRF / GUARDAR SALIDA ORIGIN EXTERNO
+ * ---------------------------------------------------------------------------
+ */
+
+test('40 - guardar salida rechaza Origin externo', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie,
+            Origin: 'https://evil.example.com'
+        },
+        body: JSON.stringify({})
+    });
+
+    assert.equal(result.status, 403);
+    assert.equal(result.body.error, 'Origen no permitido.');
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 41 - CSRF / GUARDAR SALIDA ORIGIN VÁLIDO
+ * ---------------------------------------------------------------------------
+ */
+
+test('41 - guardar salida acepta Origin válido', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie,
+            Origin: new URL(BASE_URL).origin
+        },
+        body: JSON.stringify({})
+    });
+
+    assert.notEqual(result.status, 403);
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 42 - CSRF / LOGOUT ORIGIN EXTERNO
+ * ---------------------------------------------------------------------------
+ */
+
+test('42 - logout rechaza Origin externo', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/logout', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie,
+            Origin: 'https://evil.example.com'
+        }
+    });
+
+    assert.equal(result.status, 403);
+    assert.equal(result.body.error, 'Origen no permitido.');
 });

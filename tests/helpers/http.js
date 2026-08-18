@@ -1,6 +1,7 @@
 ﻿async function requestJson(baseUrl, body, cookie = '') {
     const headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        Origin: new URL(baseUrl).origin
     };
 
     if (cookie) {

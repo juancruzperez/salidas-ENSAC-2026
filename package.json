@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "gestion-salidas-educativas",
   "version": "1.0.0",
   "scripts": {
@@ -12,3 +12,4 @@
     "nodemailer": "^9.0.3"
   }
 }
+

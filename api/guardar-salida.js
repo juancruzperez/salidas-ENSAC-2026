@@ -1,6 +1,9 @@
 const { sql } = require('@vercel/postgres');
 const nodemailer = require('nodemailer');
-const { requirePermission } = require('./lib/auth');
+const {
+    requireSameOrigin,
+    requirePermission
+} = require('./lib/auth');
 
 module.exports = async function handler(request, response) {
     if (request.method !== 'POST') {
@@ -10,6 +13,14 @@ module.exports = async function handler(request, response) {
     }
 
     try {
+        const origin = requireSameOrigin(request);
+
+        if (!origin.ok) {
+            return response.status(origin.status).json({
+                error: origin.error
+            });
+        }
+
         const auth = await requirePermission(
             request,
             'salida:create'
@@ -93,14 +104,14 @@ module.exports = async function handler(request, response) {
             : 'CON PERNOCTE';
 
         const destinatarioSecretaria =
-    process.env.VERCEL_ENV === 'preview' && process.env.TEST_EMAIL_TO
-        ? process.env.TEST_EMAIL_TO
-        : 'juanceprez@gmail.com';
+            process.env.VERCEL_ENV === 'preview' && process.env.TEST_EMAIL_TO
+                ? process.env.TEST_EMAIL_TO
+                : 'juanceprez@gmail.com';
 
-const mailOptionsSecretaria = {
-    from: `"Sistema de Salidas Educativas" <${process.env.GMAIL_USER}>`,
-    to: destinatarioSecretaria,
-    cc: emailDocente,
+        const mailOptionsSecretaria = {
+            from: `"Sistema de Salidas Educativas" <${process.env.GMAIL_USER}>`,
+            to: destinatarioSecretaria,
+            cc: emailDocente,
             subject: `${docenteOrgTexto} ha generado una salida nueva`,
             html: `
                 <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">

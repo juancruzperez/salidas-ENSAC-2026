@@ -46,6 +46,40 @@ const PERMISSIONS = {
     ])
 };
 
+function requireSameOrigin(request) {
+    const origin = request.headers?.origin;
+    const host = request.headers?.host;
+
+    if (
+        typeof origin !== 'string' ||
+        origin === '' ||
+        typeof host !== 'string' ||
+        host === ''
+    ) {
+        return {
+            ok: false,
+            status: 403,
+            error: 'Origen no permitido.'
+        };
+    }
+
+    const expectedOrigin = `https://${host}`;
+
+    if (origin !== expectedOrigin) {
+        return {
+            ok: false,
+            status: 403,
+            error: 'Origen no permitido.'
+        };
+    }
+
+    return {
+        ok: true,
+        status: 200,
+        error: null
+    };
+}
+
 async function requireSession(request) {
     const token = getSessionToken(request);
 
@@ -116,6 +150,7 @@ async function requirePermission(request, permission) {
 
 module.exports = {
     PERMISSIONS,
+    requireSameOrigin,
     requireSession,
     hasPermission,
     requirePermission

@@ -1,14 +1,25 @@
 const { sql } = require('@vercel/postgres');
-const { requirePermission } = require('./lib/auth');
+const {
+    requireSameOrigin,
+    requirePermission
+} = require('./lib/auth');
 
 module.exports = async function handler(request, response) {
     if (request.method !== 'POST') {
         return response.status(405).json({
-            error: 'Método no permitido'
+            error: 'MÃ©todo no permitido'
         });
     }
 
     try {
+        const origin = requireSameOrigin(request);
+
+        if (!origin.ok) {
+            return response.status(origin.status).json({
+                error: origin.error
+            });
+        }
+
         const auth = await requirePermission(
             request,
             'estudiante:manage'
@@ -35,7 +46,7 @@ module.exports = async function handler(request, response) {
                 est.dni.trim() === ''
             ) {
                 return response.status(400).json({
-                    error: 'Cada estudiante debe tener un DNI válido.'
+                    error: 'Cada estudiante debe tener un DNI vÃ¡lido.'
                 });
             }
 

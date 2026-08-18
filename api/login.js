@@ -1,4 +1,7 @@
-const { sql } = require('@Vercel/postgres');
+const { sql } = require('@vercel/postgres');
+const {
+    requireSameOrigin
+} = require('./lib/auth');
 const { hashPassword, verifyPassword } = require('./lib/password');
 const {
     createSession,
@@ -8,29 +11,37 @@ const {
 module.exports = async function handler(request, response) {
     if (request.method !== 'POST') {
         return response.status(405).json({
-            error: 'Método no permitido.'
-        });
-    }
-
-    const contentType = request.headers['content-type'] || '';
-
-    if (!contentType.toLowerCase().startsWith('application/json')) {
-        return response.status(415).json({
-            error: 'El contenido debe ser JSON.'
-        });
-    }
-
-    let body;
-
-    try {
-        body = request.body;
-    } catch (error) {
-        return response.status(400).json({
-            error: 'Solicitud inválida.'
+            error: 'MÃ©todo no permitido.'
         });
     }
 
     try {
+        const origin = requireSameOrigin(request);
+
+        if (!origin.ok) {
+            return response.status(origin.status).json({
+                error: origin.error
+            });
+        }
+
+        const contentType = request.headers['content-type'] || '';
+
+        if (!contentType.toLowerCase().startsWith('application/json')) {
+            return response.status(415).json({
+                error: 'El contenido debe ser JSON.'
+            });
+        }
+
+        let body;
+
+        try {
+            body = request.body;
+        } catch (error) {
+            return response.status(400).json({
+                error: 'Solicitud invÃ¡lida.'
+            });
+        }
+
         const { username, password } = body || {};
 
         if (
@@ -40,7 +51,7 @@ module.exports = async function handler(request, response) {
             password === ''
         ) {
             return response.status(401).json({
-                error: 'Usuario o contraseña incorrectos.'
+                error: 'Usuario o contraseÃ±a incorrectos.'
             });
         }
 
@@ -60,7 +71,7 @@ module.exports = async function handler(request, response) {
 
         if (result.rows.length === 0) {
             return response.status(401).json({
-                error: 'Usuario o contraseña incorrectos.'
+                error: 'Usuario o contraseÃ±a incorrectos.'
             });
         }
 
@@ -81,7 +92,7 @@ module.exports = async function handler(request, response) {
 
         if (!passwordValida) {
             return response.status(401).json({
-                error: 'Usuario o contraseña incorrectos.'
+                error: 'Usuario o contraseÃ±a incorrectos.'
             });
         }
 

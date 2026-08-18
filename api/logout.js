@@ -3,6 +3,9 @@ const {
     getSessionToken,
     clearSessionCookie
 } = require('./lib/session');
+const {
+    requireSameOrigin
+} = require('./lib/auth');
 
 module.exports = async function handler(request, response) {
     if (request.method !== 'POST') {
@@ -12,6 +15,14 @@ module.exports = async function handler(request, response) {
     }
 
     try {
+        const origin = requireSameOrigin(request);
+
+        if (!origin.ok) {
+            return response.status(origin.status).json({
+                error: origin.error
+            });
+        }
+
         const token = getSessionToken(request);
 
         if (token) {

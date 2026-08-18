@@ -1,5 +1,8 @@
-﻿const { sql } = require('@vercel/postgres');
-const { requirePermission } = require('./lib/auth');
+const { sql } = require('@vercel/postgres');
+const {
+    requireSameOrigin,
+    requirePermission
+} = require('./lib/auth');
 
 function normalizeDni(value) {
     if (typeof value !== 'string') {
@@ -50,6 +53,14 @@ module.exports = async function handler(request, response) {
     }
 
     try {
+        const origin = requireSameOrigin(request);
+
+        if (!origin.ok) {
+            return response.status(origin.status).json({
+                error: origin.error
+            });
+        }
+
         const body = request.body || {};
         const action = body.action;
 
@@ -94,7 +105,6 @@ module.exports = async function handler(request, response) {
         }
 
         if (action === 'find') {
-            
             const result = await sql`
                 SELECT
                     id,
