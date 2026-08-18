@@ -92,10 +92,15 @@ module.exports = async function handler(request, response) {
             ? 'SIN PERNOCTE (Ida y vuelta en el día)'
             : 'CON PERNOCTE';
 
-        const mailOptionsSecretaria = {
-            from: `"Sistema de Salidas Educativas" <${process.env.GMAIL_USER}>`,
-            to: 'juanceprez@gmail.com',
-            cc: emailDocente,
+        const destinatarioSecretaria =
+    process.env.VERCEL_ENV === 'preview' && process.env.TEST_EMAIL_TO
+        ? process.env.TEST_EMAIL_TO
+        : 'juanceprez@gmail.com';
+
+const mailOptionsSecretaria = {
+    from: `"Sistema de Salidas Educativas" <${process.env.GMAIL_USER}>`,
+    to: destinatarioSecretaria,
+    cc: emailDocente,
             subject: `${docenteOrgTexto} ha generado una salida nueva`,
             html: `
                 <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">

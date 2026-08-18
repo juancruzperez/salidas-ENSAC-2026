@@ -844,3 +844,47 @@ test('34 - guardar salida rechaza métodos distintos de POST', async () => {
 
     assert.equal(result.status, 405);
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * 35 - FLUJO FUNCIONAL / GUARDAR SALIDA
+ * ---------------------------------------------------------------------------
+ */
+
+test('35 - docente puede crear una salida', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const runId = `${Date.now()}${process.pid}`;
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: `TEST - Destino ${runId}`,
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 10,
+            cantAcompanantes: 2,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+    assert.ok(result.body.idSalida);
+});
