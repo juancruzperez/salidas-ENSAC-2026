@@ -7,6 +7,7 @@
     "test:integration:http": "node --test tests/integration/http.test.js"
   },
   "dependencies": {
+    "@vercel/firewall": "^1.2.5",
     "@vercel/postgres": "^0.8.0",
     "nodemailer": "^9.0.3"
   }

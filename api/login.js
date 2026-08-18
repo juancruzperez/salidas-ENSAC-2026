@@ -1,4 +1,4 @@
-const { sql } = require('@vercel/postgres');
+const { sql } = require('@Vercel/postgres');
 const { hashPassword, verifyPassword } = require('./lib/password');
 const {
     createSession,

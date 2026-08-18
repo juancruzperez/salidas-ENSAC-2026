@@ -888,3 +888,76 @@ test('35 - docente puede crear una salida', async () => {
     assert.equal(result.body.success, true);
     assert.ok(result.body.idSalida);
 });
+/*
+ * ---------------------------------------------------------------------------
+ * 36 - LOGOUT / INVALIDACIÓN DE SESIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('36 - logout invalida la sesión', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const beforeLogout = await request('/api/session', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(beforeLogout.status, 200);
+    assert.equal(beforeLogout.body.authenticated, true);
+
+    const logoutResult = await request('/api/logout', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(logoutResult.status, 200);
+    assert.equal(logoutResult.body.success, true);
+
+    const afterLogout = await request('/api/session', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(afterLogout.status, 401);
+    assert.equal(afterLogout.body.authenticated, false);
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 37 - LOGOUT / SIN SESIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('37 - logout sin sesión sigue siendo exitoso', async () => {
+    const result = await request('/api/logout', {
+        method: 'POST'
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 38 - LOGOUT / MÉTODO HTTP
+ * ---------------------------------------------------------------------------
+ */
+
+test('38 - logout rechaza métodos distintos de POST', async () => {
+    const result = await request('/api/logout', {
+        method: 'GET'
+    });
+
+    assert.equal(result.status, 405);
+    assert.equal(result.body.error, 'Método no permitido.');
+});
