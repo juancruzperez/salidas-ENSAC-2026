@@ -7,7 +7,7 @@ const {
 module.exports = async function handler(request, response) {
     if (request.method !== 'POST') {
         return response.status(405).json({
-            error: 'MÃ©todo no permitido'
+            error: 'Método no permitido'
         });
     }
 
@@ -46,7 +46,7 @@ module.exports = async function handler(request, response) {
                 est.dni.trim() === ''
             ) {
                 return response.status(400).json({
-                    error: 'Cada estudiante debe tener un DNI vÃ¡lido.'
+                    error: 'Cada estudiante debe tener un DNI válido.'
                 });
             }
 
@@ -71,3 +71,4 @@ module.exports = async function handler(request, response) {
         });
     }
 };
+
