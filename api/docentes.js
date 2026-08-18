@@ -95,30 +95,6 @@ module.exports = async function handler(request, response) {
 
         if (action === 'find') {
             
-            console.log('ENV DIAGNOSTIC:', {
-    postgresUrlHost: process.env.POSTGRES_URL
-        ? new URL(process.env.POSTGRES_URL).hostname
-        : null,
-    postgresUrlNonPoolingHost: process.env.POSTGRES_URL_NON_POOLING
-        ? new URL(process.env.POSTGRES_URL_NON_POOLING).hostname
-        : null,
-    databaseUrlHost: process.env.DATABASE_URL
-        ? new URL(process.env.DATABASE_URL).hostname
-        : null
-});
-            
-            const debugDb = await sql`
-                SELECT
-                    current_database() AS database_name,
-                    current_user AS database_user,
-                    current_schema() AS schema_name,
-                    current_setting('neon.branch_id', true) AS neon_branch_id,
-                    current_setting('neon.project_id', true) AS neon_project_id,
-                    to_regclass('public.docentes') AS docentes_table
-            `;
-
-console.log('DB DIAGNOSTIC:', debugDb.rows[0]);
-
             const result = await sql`
                 SELECT
                     id,
