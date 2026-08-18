@@ -9,12 +9,45 @@ const USERS = {
         username: process.env.TEST_DOCENTE_USERNAME,
         password: process.env.TEST_DOCENTE_PASSWORD
     },
+
+    secretaria: {
+        username: process.env.TEST_SECRETARIA_USERNAME,
+        password: process.env.TEST_SECRETARIA_PASSWORD
+    },
+
     direccion: {
         username: process.env.TEST_DIRECCION_USERNAME,
         password: process.env.TEST_DIRECCION_PASSWORD
+    },
+
+    admin: {
+        username: process.env.TEST_ADMIN_USERNAME,
+        password: process.env.TEST_ADMIN_PASSWORD
     }
 };
+if (!USERS.docente.username || !USERS.docente.password) {
+    throw new Error(
+        'Faltan TEST_DOCENTE_USERNAME o TEST_DOCENTE_PASSWORD.'
+    );
+}
 
+if (!USERS.secretaria.username || !USERS.secretaria.password) {
+    throw new Error(
+        'Faltan TEST_SECRETARIA_USERNAME o TEST_SECRETARIA_PASSWORD.'
+    );
+}
+
+if (!USERS.direccion.username || !USERS.direccion.password) {
+    throw new Error(
+        'Faltan TEST_DIRECCION_USERNAME o TEST_DIRECCION_PASSWORD.'
+    );
+}
+
+if (!USERS.admin.username || !USERS.admin.password) {
+    throw new Error(
+        'Faltan TEST_ADMIN_USERNAME o TEST_ADMIN_PASSWORD.'
+    );
+}
 if (!BASE_URL) {
     throw new Error('Falta TEST_BASE_URL.');
 }
@@ -452,4 +485,362 @@ test('16 - login dirección válido', async () => {
     assert.equal(result.body.user.role, 'direccion');
     assert.ok(result.cookie);
     assert.match(result.cookie, /^session=/);
+});
+/*
+ * ---------------------------------------------------------------------------
+ * 17 - AUTORIZACIÓN / SALIDAS SIN SESIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('17 - salidas rechaza petición sin sesión', async () => {
+    const result = await request('/api/salidas');
+
+    assert.equal(result.status, 401);
+    assert.equal(result.body.error, 'No autenticado.');
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 18 - AUTORIZACIÓN / DOCENTE
+ * ---------------------------------------------------------------------------
+ */
+
+test('18 - docente no puede consultar salidas', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/salidas', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(result.status, 403);
+    assert.equal(
+        result.body.error,
+        'No tiene permisos para realizar esta operación.'
+    );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 19 - AUTORIZACIÓN / DIRECCIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('19 - dirección puede consultar salidas', async () => {
+    const loginResult = await login(
+        USERS.direccion.username,
+        USERS.direccion.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/salidas', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(result.status, 200);
+    assert.ok(Array.isArray(result.body));
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 20 - MÉTODO HTTP
+ * ---------------------------------------------------------------------------
+ */
+
+test('20 - salidas rechaza métodos distintos de GET', async () => {
+    const result = await request('/api/salidas', {
+        method: 'POST'
+    });
+
+    assert.equal(result.status, 405);
+    assert.equal(result.body.error, 'Método no permitido');
+});
+/*
+ * ---------------------------------------------------------------------------
+ * 21 - AUTORIZACIÓN / ESTUDIANTES SIN SESIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('21 - estudiantes rechaza petición sin sesión', async () => {
+    const result = await request('/api/estudiantes');
+
+    assert.equal(result.status, 401);
+    assert.equal(result.body.error, 'No autenticado.');
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 22 - AUTORIZACIÓN / ESTUDIANTES DOCENTE
+ * ---------------------------------------------------------------------------
+ */
+
+test('22 - docente puede consultar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/estudiantes', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(result.status, 200);
+    assert.ok(Array.isArray(result.body));
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 23 - AUTORIZACIÓN / ESTUDIANTES SECRETARÍA
+ * ---------------------------------------------------------------------------
+ */
+
+test('23 - secretaria puede consultar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.secretaria.username,
+        USERS.secretaria.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/estudiantes', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(result.status, 200);
+    assert.ok(Array.isArray(result.body));
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 24 - AUTORIZACIÓN / ESTUDIANTES DIRECCIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('24 - dirección puede consultar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.direccion.username,
+        USERS.direccion.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/estudiantes', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(result.status, 200);
+    assert.ok(Array.isArray(result.body));
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 25 - AUTORIZACIÓN / ESTUDIANTES ADMIN
+ * ---------------------------------------------------------------------------
+ */
+
+test('25 - admin puede consultar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.admin.username,
+        USERS.admin.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/estudiantes', {
+        headers: {
+            Cookie: loginResult.cookie
+        }
+    });
+
+    assert.equal(result.status, 200);
+    assert.ok(Array.isArray(result.body));
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 26 - MÉTODO HTTP / ESTUDIANTES
+ * ---------------------------------------------------------------------------
+ */
+
+test('26 - estudiantes rechaza POST', async () => {
+    const result = await request('/api/estudiantes', {
+        method: 'POST'
+    });
+
+    assert.equal(result.status, 405);
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 27 - AUTORIZACIÓN / ACTUALIZAR ESTUDIANTES DOCENTE
+ * ---------------------------------------------------------------------------
+ */
+
+test('27 - docente no puede actualizar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/actualizar-estudiantes', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            estudiantes: []
+        })
+    });
+
+    assert.equal(result.status, 403);
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 28 - AUTORIZACIÓN / ACTUALIZAR ESTUDIANTES DIRECCIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('28 - dirección no puede actualizar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.direccion.username,
+        USERS.direccion.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/actualizar-estudiantes', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            estudiantes: []
+        })
+    });
+
+    assert.equal(result.status, 403);
+});
+
+test('29 - actualizar estudiantes rechaza petición sin sesión', async () => {
+    const result = await request('/api/actualizar-estudiantes', {
+        method: 'POST',
+        body: JSON.stringify({
+            estudiantes: []
+        })
+    });
+
+    assert.equal(result.status, 401);
+    assert.equal(result.body.error, 'No autenticado.');
+});
+
+test('30 - secretaria puede actualizar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.secretaria.username,
+        USERS.secretaria.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/actualizar-estudiantes', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            estudiantes: []
+        })
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+});
+
+test('31 - admin puede actualizar estudiantes', async () => {
+    const loginResult = await login(
+        USERS.admin.username,
+        USERS.admin.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/actualizar-estudiantes', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            estudiantes: []
+        })
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(result.body.success, true);
+});
+
+test('32 - actualizar estudiantes rechaza GET', async () => {
+    const result = await request('/api/actualizar-estudiantes', {
+        method: 'GET'
+    });
+
+    assert.equal(result.status, 405);
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 33 - AUTORIZACIÓN / GUARDAR SALIDA SIN SESIÓN
+ * ---------------------------------------------------------------------------
+ */
+
+test('33 - guardar salida rechaza petición sin sesión', async () => {
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        body: JSON.stringify({})
+    });
+
+    assert.equal(result.status, 401);
+    assert.equal(result.body.error, 'No autenticado.');
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * 34 - MÉTODO HTTP / GUARDAR SALIDA
+ * ---------------------------------------------------------------------------
+ */
+
+test('34 - guardar salida rechaza métodos distintos de POST', async () => {
+    const result = await request('/api/guardar-salida', {
+        method: 'GET'
+    });
+
+    assert.equal(result.status, 405);
 });
