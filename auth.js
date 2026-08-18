@@ -39,7 +39,6 @@ if (formLogin) {
             }
 
             usuarioActual = data.user;
-            localStorage.setItem('usuarioSesion', JSON.stringify(usuarioActual));
             controlarPermisos(usuarioActual);
 
         } catch (error) {
@@ -115,15 +114,34 @@ async function cargarInformeEjecutivo() {
     }
 }
 
-function cerrarSesion() {
-    localStorage.removeItem('usuarioSesion');
-    location.reload();
+async function cerrarSesion() {
+    try {
+        await fetch('/api/logout', {
+            method: 'POST'
+        });
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+    } finally {
+        usuarioActual = null;
+        location.reload();
+    }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    const sesionGuardada = localStorage.getItem('usuarioSesion');
-    if (sesionGuardada) {
-        usuarioActual = JSON.parse(sesionGuardada);
-        controlarPermisos(usuarioActual);
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const respuesta = await fetch('/api/session');
+
+        if (!respuesta.ok) {
+            return;
+        }
+
+        const data = await respuesta.json();
+
+        if (data.authenticated && data.user) {
+            usuarioActual = data.user;
+            controlarPermisos(usuarioActual);
+        }
+    } catch (error) {
+        console.error('Error al recuperar la sesión:', error);
     }
 });
