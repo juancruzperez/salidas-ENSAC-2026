@@ -1,6 +1,11 @@
 {
   "name": "gestion-salidas-educativas",
   "version": "1.0.0",
+  "scripts": {
+    "test": "npm run test:unit",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:integration:http": "node --test tests/integration/http.test.js"
+  },
   "dependencies": {
     "@vercel/postgres": "^0.8.0",
     "nodemailer": "^9.0.3"
