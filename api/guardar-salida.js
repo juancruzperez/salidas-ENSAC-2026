@@ -1,4 +1,4 @@
-﻿const { sql } = require('@vercel/postgres');
+const { sql } = require('@vercel/postgres');
 const nodemailer = require('nodemailer');
 const {
     requireSameOrigin,

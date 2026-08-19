@@ -125,3 +125,78 @@ test('con pernocte con alojamiento es válido', () => {
 
     assert.equal(result.valid, true);
 });
+
+test('acepta un estudiante con un acompañante', () => {
+    const result = validateSalida(
+        salidaValida({
+            cantEstudiantes: 1,
+            cantAcompanantes: 1
+        })
+    );
+
+    assert.equal(result.valid, true);
+});
+
+test('acepta exactamente el mínimo de acompañantes para 10 estudiantes', () => {
+    const result = validateSalida(
+        salidaValida({
+            cantEstudiantes: 10,
+            cantAcompanantes: 1
+        })
+    );
+
+    assert.equal(result.valid, true);
+});
+
+test('requiere dos acompañantes para 11 estudiantes', () => {
+    const result = validateSalida(
+        salidaValida({
+            cantEstudiantes: 11,
+            cantAcompanantes: 1
+        })
+    );
+
+    assert.equal(result.valid, false);
+});
+
+test('acepta regreso el mismo día con hora posterior', () => {
+    const result = validateSalida(
+        salidaValida({
+            horaSalida: '08:00',
+            horaRegreso: '08:01'
+        })
+    );
+
+    assert.equal(result.valid, true);
+});
+
+test('rechaza regreso a la misma hora', () => {
+    const result = validateSalida(
+        salidaValida({
+            horaSalida: '08:00',
+            horaRegreso: '08:00'
+        })
+    );
+
+    assert.equal(result.valid, false);
+});
+
+test('con pernocte permite regreso en una fecha posterior', () => {
+    const result = validateSalida(
+        salidaValida({
+            sinPernocte: false,
+            fechaRegreso: '2026-09-11',
+            nombreAlojamiento: 'Hotel Test'
+        })
+    );
+
+    assert.equal(result.valid, true);
+});
+
+test('la salida local no requiere datos de país, provincia o ciudad', () => {
+    const result = validateSalida(
+        salidaValida()
+    );
+
+    assert.equal(result.valid, true);
+});
