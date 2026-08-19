@@ -1,232 +1,508 @@
-# 1. Hardening de autenticación y autorización
+# ROADMAP DE MEJORA — SALIDAS ENSAC 2026
 
-Este es el **P0**.
+## Objetivo general
 
-Actualmente el login consulta directamente usuario y contraseña en la BD.
+Evolucionar la aplicación Salidas ENSAC 2026 desde un formulario funcional hacia un sistema institucional robusto, seguro, mantenible, testeable y preparado para crecer.
 
-Además, el frontend guarda información de sesión en `localStorage`.
+## Regla de trabajo
 
-### 1.1. Analizar modelo actual de usuarios
+Cada modificación debe seguir este ciclo:
 
-* Revisar tabla `usuarios`.
-* Identificar roles existentes.
-* Identificar usuarios existentes.
-* Determinar qué operaciones puede realizar cada rol.
+DIAGNÓSTICO
+↓
+CAMBIO PEQUEÑO
+↓
+TEST
+↓
+REVISIÓN DEL DIFF
+↓
+COMMIT
+↓
+PUSH
+↓
+CHECKPOINT
+↓
+SIGUIENTE SUBTAREA
 
-Propuesta:
-
-```text
-admin
-secretaria
-direccion
-docente
-```
-
-### 1.2. Diseñar autenticación
-
-Decidir entre:
-
-* cookies de sesión HTTP-only;
-* JWT + cookie HTTP-only;
-* proveedor externo.
-
-Para esta aplicación yo priorizaría **sesión server-side/cookie HTTP-only** antes que inventar un sistema JWT innecesariamente complejo.
-
-### 1.3. Contraseñas
-
-Migrar:
-
-```text
-password
-```
-
-a:
-
-```text
-password_hash
-```
-
-utilizando hashing seguro.
-
-Nunca volver a almacenar contraseñas en texto plano.
-
-### 1.4. Crear API de sesión
-
-Por ejemplo:
-
-```text
-POST /api/login
-GET  /api/session
-POST /api/logout
-```
-
-### 1.5. Middleware de autorización
-
-Crear una función reutilizable:
-
-```text
-requireAuth()
-requireRole()
-```
-
-Conceptualmente:
-
-```text
-request
-   ↓
-¿sesión válida?
-   ↓
-¿rol autorizado?
-   ↓
-controller
-   ↓
-database
-```
-
-### 1.6. Proteger APIs
-
-Aplicar autorización a:
-
-```text
-/api/salidas
-/api/estudiantes
-/api/guardar-salida
-/api/actualizar-estudiantes
-```
-
-### 1.7. Eliminar confianza en frontend
-
-Nunca:
-
-```js
-if (user.role === "admin")
-```
-
-como mecanismo de seguridad.
-
-Eso solamente controla UI.
-
-La seguridad debe estar en:
-
-```text
-API → autorización → operación
-```
-
-### 1.8. Logout real
-
-Eliminar:
-
-```text
-localStorage.usuarioSesion
-```
-
-como mecanismo de autenticación.
-
-### 1.9. Protección contra ataques básicos
-
-Evaluar:
-
-* rate limiting del login;
-* mensajes de error no reveladores;
-* CSRF si corresponde al mecanismo elegido;
-* expiración de sesión;
-* renovación de sesión;
-* cookies `HttpOnly`;
-* `Secure`;
-* `SameSite`.
-
-### 1.10. Tests de seguridad
-
-Probar:
-
-```text
-sin sesión → 401
-docente → no puede acceder a endpoints administrativos
-secretaria → puede acceder a informes
-admin → acceso administrativo
-sesión vencida → 401
-logout → sesión inválida
-```
-
-**Definition of Done:**
-
-> Ninguna operación protegida puede ejecutarse simplemente llamando directamente a `/api/...` sin autorización válida.
+No avanzar de fase mientras el checkpoint correspondiente no esté cumplido.
 
 ---
 
-# 2. Validación server-side e integridad de datos
+# FASE 0 — PREPARACIÓN Y LÍNEA BASE
 
-Actualmente mucha lógica importante está en JavaScript del navegador.
+## Objetivo
 
-Ejemplo: mínimo de acompañantes.
+Establecer un estado conocido, reproducible y seguro antes de continuar modificando la aplicación.
 
-Eso debe replicarse en backend.
+### 0.1 Repositorio
 
-### 2.1. Definir reglas de negocio
+- [x] Identificar repositorio principal.
+- [x] Confirmar `main`.
+- [x] Confirmar rama de trabajo.
+- [x] Confirmar conexión con `origin`.
+- [x] Confirmar estado limpio de Git.
+- [x] Confirmar que `main` está actualizado.
+- [x] Crear rama específica para cada bloque de trabajo.
 
-Documentar reglas:
+### 0.2 Dependencias
+
+- [x] Revisar `package.json`.
+- [x] Revisar `package-lock.json`.
+- [ ] Identificar dependencias deprecated.
+- [ ] Identificar vulnerabilidades.
+- [ ] Determinar estrategia para reemplazar `@Vercel/postgres`.
+- [ ] No actualizar dependencias críticas sin tests.
+
+### 0.3 Tests
+
+- [x] Identificar tests unitarios.
+- [x] Identificar tests de integración.
+- [x] Ejecutar baseline.
+- [x] Registrar cantidad de tests.
+- [ ] Definir comandos oficiales de validación.
+
+### 0.4 Deploy
+
+- [x] Confirmar proyecto Vercel.
+- [x] Confirmar Preview deployments.
+- [x] Confirmar Production deployment.
+- [ ] Documentar procedimiento de deploy Preview.
+- [ ] Documentar variable `TEST_BASE_URL`.
+- [ ] Confirmar que Preview corresponde a la rama que se está probando.
+
+### CHECKPOINT FASE 0
+
+- [x] Repositorio controlado.
+- [x] Rama de trabajo definida.
+- [x] Tests ejecutables.
+- [x] Preview disponible.
+- [ ] Procedimiento de desarrollo documentado.
+
+---
+
+# FASE 1 — SEGURIDAD Y AUTORIZACIÓN
+
+## Objetivo
+
+Impedir acceso, modificación o ejecución de operaciones por usuarios no autorizados.
+
+### 1.1 Autenticación
+
+- [x] Login.
+- [x] Verificación de contraseña.
+- [x] Hash seguro.
+- [x] Sesiones.
+- [x] Logout.
+- [x] Endpoint `/api/session`.
+
+### 1.2 Autorización
+
+- [x] Roles.
+- [x] Permisos.
+- [x] `requirePermission`.
+- [x] Protección de endpoints.
+- [x] Tests de acceso permitido.
+- [x] Tests de acceso denegado.
+
+### 1.3 Protección contra requests externos
+
+- [x] `requireSameOrigin`.
+- [x] Rechazar requests sin Origin cuando corresponda.
+- [x] Rechazar Origin externo.
+- [x] Aceptar Origin válido.
+- [x] Tests de Origin.
+
+### 1.4 Hardening
+
+- [x] Proteger endpoints sensibles.
+- [x] Revisar métodos HTTP.
+- [x] Revisar respuestas de error.
+- [x] Revisar encoding.
+- [x] Eliminar BOM problemáticos.
+- [x] Revisar mojibake.
+
+### 1.5 Testing
+
+- [x] Tests de autenticación.
+- [x] Tests de autorización.
+- [x] Tests de métodos HTTP.
+- [x] Tests de Origin.
+- [x] Tests de logout.
+
+### CHECKPOINT FASE 1
+
+- [x] Tests verdes.
+- [x] Sin acceso anónimo a endpoints protegidos.
+- [x] Roles respetados.
+- [x] Origin protegido.
+- [x] PR #1 realizado.
+- [x] PR #1 mergeado a `main`.
+
+ESTADO: COMPLETADA
+
+---
+
+# FASE 2 — VALIDACIÓN SERVER-SIDE E INTEGRIDAD DE DATOS
+
+## Objetivo
+
+El backend debe ser la autoridad sobre la validez de una salida.
+
+Un usuario malicioso no debe poder crear una salida inválida manipulando directamente la API.
+
+---
+
+## 2.1 REGLAS DE NEGOCIO
+
+### 2.1.1 Cantidad de estudiantes
+
+Regla:
 
 ```text
 estudiantes >= 1
+````
 
+* [x] Implementar validación.
+* [x] Test con `0`.
+* [ ] Test con negativo.
+* [ ] Test con decimal.
+* [ ] Test con string.
+* [ ] Test con `null`.
+* [ ] Test con valor ausente.
+
+### 2.1.2 Cantidad de acompañantes
+
+Regla:
+
+```text
 acompañantes >= ceil(estudiantes / 10)
-
-fecha regreso >= fecha salida
-
-si misma fecha:
-hora regreso > hora salida
-
-sin pernocte:
-fecha regreso = fecha salida
-
-con pernocte:
-alojamiento obligatorio
-
-salida local:
-no requiere país/provincia/ciudad
 ```
 
-### 2.2. Validación de tipos
+Ejemplos:
+
+```text
+1 estudiante  → 1 acompañante
+10 estudiantes → 1 acompañante
+11 estudiantes → 2 acompañantes
+20 estudiantes → 2 acompañantes
+21 estudiantes → 3 acompañantes
+```
+
+* [x] Implementar regla.
+* [x] Test de cantidad insuficiente.
+* [x] Test de cantidad mínima válida.
+* [ ] Test de límites.
+* [ ] Test con decimal.
+* [ ] Test con string.
+* [ ] Test con negativo.
+
+### 2.1.3 Fecha de regreso
+
+Regla:
+
+```text
+fechaRegreso >= fechaSalida
+```
+
+* [x] Implementar.
+* [x] Test de regreso anterior.
+* [ ] Test de fechas inválidas.
+* [ ] Test de campos ausentes.
+
+### 2.1.4 Horario
+
+Si:
+
+```text
+fechaRegreso == fechaSalida
+```
+
+entonces:
+
+```text
+horaRegreso > horaSalida
+```
+
+* [x] Implementar.
+* [x] Test de regreso anterior.
+* [ ] Test de misma hora.
+* [ ] Test de formato inválido.
+
+### 2.1.5 Sin pernocte
+
+Regla:
+
+```text
+sinPernocte = true
+→ fechaRegreso = fechaSalida
+```
+
+* [x] Implementar.
+* [x] Test de fecha diferente.
+* [ ] Test de tipos incorrectos.
+
+### 2.1.6 Con pernocte
+
+Regla:
+
+```text
+sinPernocte = false
+→ alojamiento obligatorio
+```
+
+* [x] Implementar.
+* [x] Test sin alojamiento.
+* [x] Test con alojamiento.
+* [ ] Test con alojamiento vacío.
+* [ ] Test con alojamiento de tipo incorrecto.
+
+### 2.1.7 Salida local
+
+Regla:
+
+```text
+salida local
+→ no requiere país
+→ no requiere provincia
+→ no requiere ciudad
+```
+
+* [ ] Identificar cómo se representa actualmente una salida local.
+* [ ] Implementar regla.
+* [ ] Test.
+* [ ] Test de salida no local.
+
+### 2.1.8 Centralización
+
+Crear módulo:
+
+```text
+api/lib/validation/salida.js
+```
+
+* [x] Crear módulo.
+* [x] Exportar `validateSalida`.
+* [x] Exportar validadores auxiliares.
+* [x] Integrar con `guardar-salida`.
+
+---
+
+# 2.2 VALIDACIÓN DE TIPOS
+
+## Objetivo
+
+Nunca asumir que `req.body` contiene los tipos esperados.
+
+### 2.2.1 Strings
 
 Validar:
 
-* strings;
-* números;
-* fechas;
-* horarios;
-* booleanos;
-* enums.
+```text
+destinoFinal
+lugarSalida
+lugarRegreso
+docenteOrganizador
+emailDocente
+nombreAlojamiento
+```
 
-### 2.3. Sanitización
+* [ ] Validar tipo.
+* [ ] Normalizar espacios.
+* [ ] Definir longitud máxima.
+* [ ] Definir campos obligatorios.
+* [ ] Definir campos opcionales.
 
-Nunca confiar en:
+### 2.2.2 Números
+
+Validar:
+
+```text
+cantEstudiantes
+cantAcompanantes
+```
+
+* [ ] Deben ser números.
+* [ ] Deben ser enteros.
+* [ ] No negativos.
+* [ ] No `NaN`.
+* [ ] No `Infinity`.
+* [ ] Definir máximos razonables.
+
+### 2.2.3 Fechas
+
+Validar:
+
+```text
+YYYY-MM-DD
+```
+
+* [ ] Formato.
+* [ ] Fecha real.
+* [ ] No aceptar fechas imposibles.
+* [ ] Evitar conversiones ambiguas de timezone.
+
+### 2.2.4 Horarios
+
+Validar:
+
+```text
+HH:mm
+```
+
+* [ ] Formato.
+* [ ] Hora válida.
+* [ ] Minutos válidos.
+
+### 2.2.5 Booleanos
+
+Validar:
+
+```text
+sinPernocte
+```
+
+* [ ] Aceptar únicamente boolean.
+* [ ] Rechazar `"true"`.
+* [ ] Rechazar `"false"`.
+* [ ] Rechazar `1`.
+* [ ] Rechazar `0`.
+
+### 2.2.6 Enums
+
+Identificar campos que utilizan valores cerrados.
+
+* [ ] Documentar enums existentes.
+* [ ] Validar contra valores permitidos.
+* [ ] Rechazar valores arbitrarios.
+
+### 2.2.7 Tests
+
+* [ ] Payload con tipos incorrectos.
+* [ ] Payload parcialmente correcto.
+* [ ] Payload completamente correcto.
+* [ ] Payload con campos desconocidos.
+
+---
+
+# 2.3 SANITIZACIÓN Y NORMALIZACIÓN
+
+## Objetivo
+
+No confiar directamente en:
 
 ```js
 req.body
 ```
 
-### 2.4. Validación del archivo PDF
+### 2.3.1 Normalización
 
-Actualmente el frontend exige PDF mediante:
+* [ ] Strings con `trim`.
+* [ ] Campos opcionales vacíos → `null`.
+* [ ] Normalizar emails.
+* [ ] Normalizar DNI donde corresponda.
+* [ ] Normalizar nombres.
 
-```html
-accept=".pdf"
+### 2.3.2 Límites
+
+* [ ] Longitud máxima de strings.
+* [ ] Cantidad máxima de estudiantes.
+* [ ] Cantidad máxima de acompañantes.
+* [ ] Tamaño máximo de payload.
+
+### 2.3.3 Campos desconocidos
+
+Decidir estrategia:
+
+```text
+rechazar
 ```
 
-pero eso **no constituye validación de seguridad**.
+o
 
-Validar backend:
+```text
+ignorar
+```
 
-* extensión;
-* MIME;
-* tamaño;
-* contenido;
-* nombre;
-* almacenamiento.
+y documentarla.
 
-### 2.5. Transacciones
+### 2.3.4 Seguridad
 
-La creación de una salida debería ser consistente:
+* [ ] No construir SQL concatenando strings.
+* [x] Usar parámetros SQL.
+* [ ] Escapar correctamente contenido utilizado en HTML/email.
+* [ ] Revisar riesgo de HTML injection en emails.
+
+### Tests
+
+* [ ] Strings excesivamente largos.
+* [ ] HTML.
+* [ ] JavaScript.
+* [ ] SQL-like payloads.
+* [ ] Campos inesperados.
+
+---
+
+# 2.4 VALIDACIÓN DE ARCHIVOS PDF
+
+## Objetivo
+
+`accept=".pdf"` del navegador NO es una medida de seguridad.
+
+La API debe validar el archivo.
+
+### 2.4.1 Extensión
+
+* [ ] Validar `.pdf`.
+* [ ] Rechazar extensiones falsas.
+
+### 2.4.2 MIME
+
+* [ ] Validar `application/pdf`.
+* [ ] No confiar exclusivamente en MIME enviado por cliente.
+
+### 2.4.3 Contenido
+
+* [ ] Verificar magic bytes.
+* [ ] Verificar estructura PDF.
+* [ ] Rechazar archivos corruptos.
+
+### 2.4.4 Tamaño
+
+* [ ] Definir límite.
+* [ ] Rechazar archivos demasiado grandes.
+
+### 2.4.5 Nombre
+
+* [ ] Sanitizar nombre.
+* [ ] Evitar path traversal.
+* [ ] Evitar caracteres problemáticos.
+* [ ] Generar nombre interno seguro.
+
+### 2.4.6 Almacenamiento
+
+* [ ] Definir almacenamiento.
+* [ ] Evitar guardar archivos arbitrariamente.
+* [ ] Asociar archivo con salida.
+* [ ] Registrar metadata.
+
+### 2.4.7 Tests
+
+* [ ] PDF válido.
+* [ ] Archivo renombrado `.pdf`.
+* [ ] MIME incorrecto.
+* [ ] Archivo demasiado grande.
+* [ ] Nombre malicioso.
+* [ ] Archivo corrupto.
+
+---
+
+# 2.5 TRANSACCIONES
+
+## Objetivo
+
+Una salida no puede quedar parcialmente creada.
+
+Flujo:
 
 ```text
 validar
@@ -241,18 +517,67 @@ guardar transporte
  ↓
 guardar documentación
  ↓
-commit
+COMMIT
 ```
 
-Si falla una parte:
+Si falla cualquier etapa:
 
 ```text
-rollback
+ROLLBACK
 ```
 
-### 2.6. Estados
+### 2.5.1 Relevamiento
 
-Definir estados formales:
+* [ ] Identificar tablas.
+* [ ] Identificar relaciones.
+* [ ] Identificar claves.
+* [ ] Identificar operaciones actuales.
+* [ ] Identificar puntos de fallo.
+
+### 2.5.2 Diseño
+
+* [ ] Definir comienzo de transacción.
+* [ ] Definir operaciones.
+* [ ] Definir commit.
+* [ ] Definir rollback.
+
+### 2.5.3 Implementación
+
+* [ ] Crear salida dentro de transacción.
+* [ ] Crear estudiantes.
+* [ ] Crear docentes.
+* [ ] Crear transporte.
+* [ ] Crear documentación.
+* [ ] Commit.
+* [ ] Rollback.
+
+### 2.5.4 Testing
+
+Simular:
+
+```text
+fallo al crear salida
+fallo estudiantes
+fallo docentes
+fallo transporte
+fallo documentación
+```
+
+Verificar:
+
+```text
+no quedan registros parciales
+```
+
+---
+
+# 2.6 ESTADOS FORMALES
+
+## Objetivo
+
+Evitar que el estado de una salida sea un valor arbitrario.
+
+Estados:
 
 ```text
 BORRADOR
@@ -264,9 +589,53 @@ RECHAZADA
 FINALIZADA
 ```
 
-### 2.7. Auditoría
+### 2.6.1 Modelo
 
-Guardar:
+* [ ] Identificar campo actual.
+* [ ] Definir valor inicial.
+* [ ] Definir valores permitidos.
+* [ ] Migrar datos existentes si corresponde.
+
+### 2.6.2 Transiciones
+
+Definir:
+
+```text
+BORRADOR → PRESENTADA
+
+PRESENTADA → EN_REVISION
+
+EN_REVISION → OBSERVADA
+EN_REVISION → APROBADA
+EN_REVISION → RECHAZADA
+
+OBSERVADA → PRESENTADA
+
+APROBADA → FINALIZADA
+```
+
+* [ ] Implementar reglas.
+* [ ] Rechazar transiciones inválidas.
+* [ ] Autorizar transiciones según rol.
+
+### 2.6.3 Tests
+
+* [ ] Transición válida.
+* [ ] Transición inválida.
+* [ ] Rol incorrecto.
+* [ ] Estado inexistente.
+
+---
+
+# 2.7 AUDITORÍA
+
+## Objetivo
+
+Poder determinar quién creó o modificó una salida.
+
+### 2.7.1 Campos
+
+Agregar:
 
 ```text
 created_at
@@ -275,897 +644,526 @@ updated_at
 updated_by
 ```
 
-y eventualmente:
+* [ ] Crear campos.
+* [ ] Definir defaults.
+* [ ] Obtener usuario desde sesión.
+* [ ] Nunca confiar en `created_by` enviado por cliente.
+
+### 2.7.2 Audit log
+
+Evaluar tabla:
 
 ```text
 audit_log
 ```
 
-**Definition of Done:**
+con:
+
+```text
+id
+entity
+entity_id
+action
+user_id
+timestamp
+metadata
+```
+
+### 2.7.3 Eventos
+
+Registrar:
+
+* [ ] creación.
+* [ ] modificación.
+* [ ] cambio de estado.
+* [ ] aprobación.
+* [ ] rechazo.
+* [ ] observación.
+* [ ] finalización.
+
+### 2.7.4 Tests
+
+* [ ] Usuario registrado correctamente.
+* [ ] Fecha registrada.
+* [ ] Cambio registrado.
+* [ ] Usuario no puede falsificar auditoría.
+
+---
+
+# CHECKPOINT FASE 2
+
+La fase solamente se considera terminada cuando:
+
+* [ ] Todas las reglas de negocio están server-side.
+* [ ] Todos los tipos están validados.
+* [ ] Los inputs están normalizados.
+* [ ] Los campos desconocidos tienen comportamiento definido.
+* [ ] Los PDFs están validados server-side.
+* [ ] La creación de una salida es transaccional.
+* [ ] Los estados están formalizados.
+* [ ] Las transiciones están protegidas.
+* [ ] Existe auditoría.
+* [ ] Tests unitarios verdes.
+* [ ] Tests de integración verdes.
+* [ ] Tests de manipulación directa de API verdes.
+* [ ] Preview desplegado.
+* [ ] Tests ejecutados contra Preview.
+* [ ] No existen regresiones.
+* [ ] Git limpio.
+* [ ] Commit realizado.
+* [ ] Push realizado.
+
+### Definition of Done
 
 > Un usuario malicioso no puede crear una salida inválida manipulando directamente la API.
 
----
-
-# 3. Limpieza y calidad del repositorio
-
-### 3.1. Eliminar `node_modules`
-
-No debe estar en Git.
-
-### 3.2. Mejorar `.gitignore`
-
-Como mínimo:
-
-```text
-node_modules/
-.vercel/
-.env
-.env.*
-!.env.example
-coverage/
-.DS_Store
-```
-
-### 3.3. Revisar secretos
-
-Buscar:
-
-```text
-password
-API_KEY
-SECRET
-TOKEN
-GMAIL
-DATABASE
-```
-
-y comprobar que no haya credenciales reales versionadas.
-
-### 3.4. Crear `.env.example`
-
-Ejemplo:
-
-```text
-POSTGRES_URL=
-GMAIL_USER=
-GMAIL_APP_PASSWORD=
-SESSION_SECRET=
-```
-
-Sin valores reales.
-
-### 3.5. `package.json`
-
-Agregar:
-
-```text
-scripts
-```
-
-por ejemplo:
-
-```json
-{
-  "scripts": {
-    "dev": "...",
-    "test": "...",
-    "lint": "...",
-    "format": "..."
-  }
-}
-```
-
-### 3.6. Revisar dependencias
-
-Detectar:
-
-* dependencias obsoletas;
-* vulnerabilidades;
-* dependencias innecesarias.
-
-### 3.7. Eliminar archivos muertos
-
-Por ejemplo el actual `test.js`, que prácticamente no contiene pruebas.
-
-**Definition of Done:**
-
-> El repositorio contiene únicamente código fuente, configuración y documentación necesarios.
+ESTADO: EN DESARROLLO
 
 ---
 
-# 4. Testing real
+# FASE 3 — LIMPIEZA Y CALIDAD DEL REPOSITORIO
 
-Este paso es fundamental porque nos permitirá hacer los siguientes sin miedo.
+## 3.1 Archivos
 
-### 4.1. Elegir framework
+* [ ] Revisar `node_modules`.
+* [ ] Revisar `.vercel`.
+* [ ] Revisar `.env`.
+* [ ] Revisar `coverage`.
+* [ ] Revisar archivos temporales.
+* [ ] Revisar archivos muertos.
 
-Podemos evaluar:
+## 3.2 Git
 
-```text
-Vitest
-```
+* [ ] `.gitignore` correcto.
+* [ ] No versionar secretos.
+* [ ] No versionar artefactos de build.
+* [ ] Revisar historial por secretos.
 
-para lógica JS/API.
-
-Y posteriormente:
-
-```text
-Playwright
-```
-
-para E2E.
-
-### 4.2. Tests unitarios
-
-Primero funciones puras:
-
-```text
-calcularMinimoAcompanantes()
-validarFechas()
-validarHorario()
-formatearFecha()
-obtenerDestinoFormateado()
-```
-
-### 4.3. Tests de validación
-
-Casos:
-
-```text
-10 estudiantes → 1 acompañante
-11 estudiantes → 2 acompañantes
-20 estudiantes → 2 acompañantes
-21 estudiantes → 3 acompañantes
-```
-
-### 4.4. Tests API
-
-```text
-login
-session
-logout
-estudiantes
-salidas
-guardar salida
-```
-
-### 4.5. Tests de autorización
-
-Especialmente:
-
-```text
-401
-403
-200
-```
-
-### 4.6. Tests E2E
-
-Flujo completo:
-
-```text
-login
- ↓
-crear salida
- ↓
-seleccionar estudiantes
- ↓
-agregar docentes
- ↓
-seleccionar transporte
- ↓
-generar PDF
- ↓
-guardar
-```
-
-### 4.7. CI
-
-GitHub Actions:
-
-```text
-push
- ↓
-npm install
- ↓
-lint
- ↓
-test
- ↓
-build/check
-```
-
-**Definition of Done:**
-
-> Un PR que rompe una funcionalidad crítica no puede pasar CI.
-
----
-
-# 5. Refactor del frontend
-
-Acá recién empezaría a atacar la arquitectura.
-
-Actualmente `app.js` concentra muchas responsabilidades.
-
-### 5.1. Separar dominio de UI
-
-Por ejemplo:
-
-```text
-src/
-├── api/
-├── auth/
-├── domain/
-├── forms/
-├── pdf/
-├── ui/
-└── utils/
-```
-
-### 5.2. Separar API
+## 3.3 Variables de entorno
 
 Crear:
 
 ```text
-apiClient.js
-authApi.js
-salidasApi.js
-estudiantesApi.js
+.env.example
 ```
 
-### 5.3. Separar validaciones
+Documentar:
 
 ```text
-validators/
-├── salida.js
-├── estudiante.js
-├── docente.js
-└── transporte.js
+DATABASE_URL
+GMAIL_USER
+GMAIL_APP_PASSWORD
+TEST_EMAIL_TO
+TEST_BASE_URL
+SESSION_SECRET
 ```
 
-### 5.4. Eliminar globals
+según las variables realmente utilizadas.
 
-Reducir:
+## 3.4 Dependencias
 
-```js
-window.generarCamposDocentes
-window.buscarAlumnosPorCurso
-window.cambiarOrganizadores
-```
+* [ ] `npm audit`.
+* [ ] Revisar vulnerabilidades.
+* [ ] Revisar paquetes deprecated.
+* [ ] Evaluar reemplazo de `@Vercel/postgres`.
+* [ ] Eliminar dependencias innecesarias.
 
-### 5.5. Eliminar `onclick`
+## CHECKPOINT FASE 3
 
-Pasar de:
-
-```html
-onclick="buscarAlumnosPorCurso(1)"
-```
-
-a listeners JS.
-
-### 5.6. Estado central
-
-Crear un modelo:
-
-```js
-salidaActual
-```
-
-con:
-
-```text
-gestion
-estudiantes
-docentes
-transporte
-documentacion
-```
-
-### 5.7. Componentizar pasos
-
-Conceptualmente:
-
-```text
-SalidaForm
- ├── GestionStep
- ├── EstudiantesStep
- ├── DocentesStep
- ├── TransporteStep
- └── ReviewStep
-```
-
-### 5.8. Manejo uniforme de errores
-
-Eliminar progresivamente:
-
-```js
-alert(...)
-```
-
-y utilizar un sistema de feedback consistente.
-
-**Definition of Done:**
-
-> Cada módulo tiene una responsabilidad clara y cambiar una parte no obliga a modificar código no relacionado.
+* [ ] Repo limpio.
+* [ ] Sin secretos.
+* [ ] Dependencias justificadas.
+* [ ] `.env.example` disponible.
+* [ ] Instalación reproducible.
 
 ---
 
-# 6. UX, estados y accesibilidad
+# FASE 4 — TESTING Y CI/CD
 
-Una vez estabilizada la arquitectura.
+## 4.1 Tests unitarios
 
-### 6.1. Wizard real
+* [ ] Validators.
+* [ ] Normalizadores.
+* [ ] Reglas de negocio.
+* [ ] Estados.
+* [ ] Permisos.
 
-Mostrar:
+## 4.2 Tests API
 
-```text
-1 Gestión
-2 Estudiantes
-3 Docentes
-4 Transporte
-5 Revisión
-```
+* [x] Autenticación.
+* [x] Autorización.
+* [x] Métodos HTTP.
+* [x] Origin.
+* [ ] Validación server-side completa.
+* [ ] Sanitización.
+* [ ] Estados.
+* [ ] Auditoría.
+* [ ] Transacciones.
 
-### 6.2. Indicador de progreso
+## 4.3 Tests E2E
 
-Ejemplo:
+* [ ] Login.
+* [ ] Crear salida.
+* [ ] Validar formulario.
+* [ ] Presentar salida.
+* [ ] Revisar salida.
+* [ ] Aprobar/rechazar.
+* [ ] Generar documentación.
 
-```text
-●━━━━○━━━━○━━━━○
-Gestión
-```
+## 4.4 CI
 
-### 6.3. Guardado temporal
+* [ ] GitHub Actions.
+* [ ] Install.
+* [ ] Unit tests.
+* [ ] Integration tests.
+* [ ] Lint.
+* [ ] Build/check.
+* [ ] Bloquear merge si falla CI.
 
-Permitir:
-
-```text
-Guardar borrador
-Continuar después
-```
-
-### 6.4. Recuperación ante errores
-
-Si falla una API:
-
-```text
-❌ No pudimos guardar la salida.
-[Reintentar]
-```
-
-No perder todo el formulario.
-
-### 6.5. Loading states
-
-Botones:
+## CHECKPOINT FASE 4
 
 ```text
-Buscar estudiantes...
-Guardando...
-Generando PDF...
+PR
+ ↓
+CI
+ ↓
+tests
+ ↓
+lint
+ ↓
+build
+ ↓
+MERGE
 ```
-
-### 6.6. Validación inline
-
-En lugar de descubrir todos los errores al final.
-
-### 6.7. Accesibilidad
-
-Revisar:
-
-* labels;
-* focus;
-* keyboard navigation;
-* contraste;
-* mensajes ARIA;
-* tablas;
-* formularios.
-
-### 6.8. Responsive
-
-Especialmente:
-
-```text
-desktop
-tablet
-celular
-```
-
-**Definition of Done:**
-
-> Un docente puede completar el trámite sin necesitar conocimientos técnicos y sin perder información ante un error de red.
 
 ---
 
-# 7. Panel administrativo
+# FASE 5 — REFACTOR FRONTEND
 
-Acá podemos transformar la aplicación de "formulario" en **sistema de gestión**.
+## Objetivo
 
-### 7.1. Dashboard
+Reducir la concentración de responsabilidades en `app.js`.
 
-Indicadores:
+### 5.1 API
 
-```text
-Total
-Pendientes
-En revisión
-Aprobadas
-Observadas
-Rechazadas
-```
+* [ ] `apiClient.js`
+* [ ] `salidasApi.js`
+* [ ] `estudiantesApi.js`
+* [ ] `docentesApi.js`
+* [ ] `authApi.js`
 
-### 7.2. Filtros
+### 5.2 Dominio
 
-Por:
+* [ ] `salida.js`
+* [ ] `estudiante.js`
+* [ ] `docente.js`
+* [ ] `transporte.js`
 
-```text
-fecha
-estado
-docente
-destino
-curso
-turno
-modalidad
-```
+### 5.3 Formularios
 
-### 7.3. Búsqueda
+* [ ] Validación.
+* [ ] Estado.
+* [ ] Serialización.
+* [ ] Mensajes.
 
-Buscar por:
+### 5.4 UI
 
-```text
-ID
-docente
-destino
-DNI
-```
+* [ ] Componentes.
+* [ ] Modales.
+* [ ] Tablas.
+* [ ] Alertas.
+* [ ] Loading.
 
-### 7.4. Detalle de salida
+### 5.5 PDF
 
-Una salida debería tener:
+* [ ] Separar generación de PDF.
+* [ ] Separar modelo documental.
 
-```text
-Información general
-Estudiantes
-Docentes
-Transporte
-Alojamiento
-Documentación
-Historial
-```
+### 5.6 Estado
 
-### 7.5. Workflow administrativo
+* [ ] Eliminar globals.
+* [ ] Estado central.
+* [ ] Flujo predecible.
+
+### CHECKPOINT FASE 5
+
+Cada módulo debe tener una responsabilidad clara.
+
+---
+
+# FASE 6 — UX Y ACCESIBILIDAD
+
+* [ ] Wizard.
+* [ ] Progreso.
+* [ ] Validación inline.
+* [ ] Loading.
+* [ ] Error states.
+* [ ] Guardado temporal.
+* [ ] Recuperación ante errores.
+* [ ] Labels.
+* [ ] Focus.
+* [ ] Teclado.
+* [ ] Contraste.
+* [ ] ARIA.
+* [ ] Tablas accesibles.
+* [ ] Responsive.
+* [ ] Mobile.
+
+### CHECKPOINT FASE 6
+
+Un docente puede completar una solicitud sin conocimientos técnicos y sin perder información ante errores previsibles.
+
+---
+
+# FASE 7 — PANEL ADMINISTRATIVO
+
+## Dashboard
+
+* [ ] Total.
+* [ ] Pendientes.
+* [ ] En revisión.
+* [ ] Observadas.
+* [ ] Aprobadas.
+* [ ] Rechazadas.
+* [ ] Finalizadas.
+
+## Búsqueda
+
+* [ ] Fecha.
+* [ ] Docente.
+* [ ] Curso.
+* [ ] Destino.
+* [ ] Estado.
+
+## Workflow
 
 ```text
 PRESENTADA
-     ↓
-EN REVISIÓN
-     ↓
- ┌───┴────┐
- ↓        ↓
-APROBADA  OBSERVADA
-             ↓
-          CORRECCIÓN
-             ↓
-          EN REVISIÓN
+↓
+EN_REVISION
+↓
+OBSERVADA / APROBADA / RECHAZADA
+↓
+CORRECCIÓN
+↓
+EN_REVISION
+↓
+APROBADA
+↓
+FINALIZADA
 ```
 
-### 7.6. Acciones por rol
+## Roles
 
-```text
-Docente:
-crear / consultar propias
+* [ ] Docente.
+* [ ] Secretaría.
+* [ ] Dirección.
+* [ ] Admin.
 
-Secretaría:
-revisar / observar / aprobar
+## CHECKPOINT FASE 7
 
-Dirección:
-supervisar / aprobar
-
-Admin:
-gestionar sistema
-```
-
-### 7.7. Auditoría
-
-Mostrar:
-
-```text
-13:42 — Juan creó solicitud
-14:10 — Secretaría la revisó
-14:22 — Secretaría solicitó documentación
-15:03 — Juan actualizó documentación
-```
+El circuito administrativo completo funciona desde presentación hasta resolución.
 
 ---
 
-# 8. Generación documental y PDF
+# FASE 8 — DOCUMENTACIÓN Y PDF
 
-Actualmente el PDF se arma directamente desde el DOM.
+* [ ] `salidaDocumentData`.
+* [ ] Plantilla institucional.
+* [ ] Encabezado.
+* [ ] Logo.
+* [ ] Numeración.
+* [ ] Firmas.
+* [ ] Pie institucional.
+* [ ] Nota de elevación.
+* [ ] Nómina estudiantes.
+* [ ] Nómina docentes.
+* [ ] Transporte.
+* [ ] Documentación.
+* [ ] PDF consolidado.
+* [ ] Versionado.
+* [ ] Fecha de generación.
+* [ ] Usuario generador.
 
-Eso funciona, pero podemos hacerlo mucho más robusto.
+### CHECKPOINT FASE 8
 
-### 8.1. Modelo documental
-
-Primero construir:
-
-```js
-salidaDocumentData
-```
-
-y luego generar documentos.
-
-No:
-
-```text
-DOM → PDF
-```
-
-sino:
-
-```text
-DB/modelo
-   ↓
-documentData
-   ↓
-PDF
-```
-
-### 8.2. Plantilla institucional
-
-Definir:
-
-* encabezado;
-* logo;
-* numeración;
-* tipografía;
-* márgenes;
-* firmas;
-* pie institucional.
-
-### 8.3. Documentos separados
-
-Por ejemplo:
-
-```text
-01 Nota de elevación
-02 Nómina estudiantes
-03 Nómina docentes
-04 Transporte
-05 Documentación
-```
-
-### 8.4. PDF consolidado
-
-Luego:
-
-```text
-Solicitud completa.pdf
-```
-
-### 8.5. Versionado documental
-
-```text
-Solicitud #123
-v1
-v2
-v3
-```
-
-### 8.6. Integridad
-
-Guardar:
-
-```text
-generated_at
-generated_by
-version
-```
+La documentación se genera desde datos del sistema y no depende directamente del DOM.
 
 ---
 
-# 9. Performance
+# FASE 9 — PERFORMANCE
 
-No optimizaría antes de tener tests y arquitectura estable.
+## Backend
 
-### 9.1. Base de datos
+* [ ] Revisar queries.
+* [ ] Evitar `SELECT *`.
+* [ ] Índices.
+* [ ] Paginación.
+* [ ] Payloads mínimos.
 
-Revisar queries.
+## Frontend
 
-Actualmente estudiantes se consultan dinámicamente con SQL.
+* [ ] JS.
+* [ ] CSS.
+* [ ] Imágenes.
+* [ ] Librerías PDF.
+* [ ] CDN.
 
-Agregar índices adecuados:
+## Medición
 
-```text
-dni
-turno
-ano
-division
-ciclo_especializacion
-```
+* [ ] TTFB.
+* [ ] LCP.
+* [ ] API latency.
+* [ ] DB latency.
+* [ ] JS execution.
 
-### 9.2. Salidas
+### CHECKPOINT FASE 9
 
-Índices:
-
-```text
-fecha_salida
-estado
-docente
-destino
-```
-
-### 9.3. Paginación
-
-No devolver:
-
-```text
-SELECT * FROM salidas
-```
-
-para siempre.
-
-Actualmente `/api/salidas` hace justamente eso.
-
-Pasar a:
-
-```text
-?page=1
-&limit=25
-```
-
-### 9.4. API
-
-Reducir payloads.
-
-En vez de:
-
-```sql
-SELECT *
-```
-
-seleccionar campos concretos.
-
-### 9.5. Frontend
-
-Revisar:
-
-* JS;
-* CSS;
-* librerías CDN;
-* PDF libraries;
-* imágenes.
-
-### 9.6. Caché
-
-Evaluar caché de datos relativamente estáticos, como estudiantes.
-
-### 9.7. Performance testing
-
-Medir:
-
-```text
-TTFB
-LCP
-JS execution
-API latency
-DB latency
-```
+Medir antes y después. No optimizar basándose únicamente en percepción.
 
 ---
 
-# 10. Nuevas funcionalidades
+# FASE 10 — NUEVAS FUNCIONALIDADES
 
-**Este paso es deliberadamente el último.**
+Solo después de estabilizar las fases anteriores.
 
-Una vez que los nueve anteriores estén razonablemente consolidados, recién ahí agregaría features.
+* [ ] Notificaciones.
+* [ ] Seguimiento de estado.
+* [ ] Historial.
+* [ ] Documentación digital.
+* [ ] Exportación PDF.
+* [ ] Exportación Excel/CSV.
+* [ ] Reportes.
+* [ ] Calendario.
+* [ ] Alertas.
+* [ ] Auditoría avanzada.
 
-### 10.1. Notificaciones
+---
 
-```text
-Nueva solicitud
-Solicitud observada
-Solicitud aprobada
-```
+# PROTOCOLO DE CADA CAMBIO
 
-### 10.2. Seguimiento de estado
+Para cada checkbox técnico:
 
-Docente:
+1. Diagnosticar.
+2. Identificar archivos afectados.
+3. Hacer un único cambio pequeño.
+4. Ejecutar `node --check` cuando corresponda.
+5. Ejecutar tests unitarios.
+6. Ejecutar tests de integración.
+7. Revisar `git diff`.
+8. Revisar `git status`.
+9. Hacer commit.
+10. Push.
+11. Deploy Preview si corresponde.
+12. Ejecutar tests contra Preview.
+13. Confirmar checkpoint.
+14. Continuar con el siguiente checkbox.
 
-```text
-Solicitud #152
+Nunca agrupar cambios no relacionados en un mismo commit.
 
-✓ Presentada
-✓ En revisión
-● Observada
-○ Aprobada
-```
+---
 
-### 10.3. Historial
-
-Cada modificación queda registrada.
-
-### 10.4. Documentación digital
-
-Repositorio de:
-
-```text
-proyecto
-autorizaciones
-PDF
-seguros
-transporte
-etc.
-```
-
-### 10.5. Exportación
+# ESTRUCTURA DE RAMAS
 
 ```text
-PDF
-Excel/CSV
-```
-
-### 10.6. Reportes
-
-Por ejemplo:
-
-```text
-salidas por mes
-salidas por destino
-cantidad de estudiantes
-cantidad de docentes
-salidas por turno
-```
-
-### 10.7. Calendario institucional
-
-Vista:
-
-```text
-Agosto 2026
-
-18 — Museo...
-21 — Reserva...
-27 — Córdoba...
-```
-
-### 10.8. Alertas administrativas
-
-Ejemplo:
-
-```text
-⚠ 3 solicitudes pendientes de revisión
-⚠ 2 salidas próximas sin aprobación
-⚠ documentación incompleta
-```
-
-### 10.9. Auditoría avanzada
-
-Panel:
-
-```text
-Quién
-Qué
-Cuándo
-Desde dónde
-```
-
-### 10.10. Evolución hacia sistema institucional
-
-Eventualmente:
-
-```text
-SALIDAS ENSAC
+main
 │
-├── Solicitudes
-├── Estudiantes
-├── Docentes
-├── Transporte
-├── Documentación
-├── Aprobaciones
-├── Reportes
-└── Auditoría
+├── phase-2/server-side-validation
+│
+├── phase-3/repository-cleanup
+│
+├── phase-4/testing-ci
+│
+├── phase-5/frontend-refactor
+│
+├── phase-6/ux-accessibility
+│
+├── phase-7/admin-panel
+│
+├── phase-8/documentation-pdf
+│
+├── phase-9/performance
+│
+└── phase-10/features
 ```
+
+Las ramas de fase se integran mediante PR una vez que el checkpoint de la fase está completo.
 
 ---
 
-# Orden operativo que propongo
+# ESTADO ACTUAL
 
-No haría simplemente `1 → 2 → 3...` sin checkpoints.
+FASE 0 — Preparación
+COMPLETADA / CONSOLIDACIÓN
 
-Trabajaría así:
+FASE 1 — Seguridad
+COMPLETADA
 
-```text
-FASE 0
-Preparación
-   ↓
-CHECKPOINT
+FASE 2 — Validación server-side
+EN DESARROLLO
 
-FASE 1
-Seguridad
-   ↓
-CHECKPOINT
+FASE 2.1 — Reglas de negocio
+EN DESARROLLO
 
-FASE 2
-Validación + integridad
-   ↓
-CHECKPOINT
+FASE 2.2 — Tipos
+PENDIENTE
 
-FASE 3
-Limpieza repo
-   ↓
-CHECKPOINT
+FASE 2.3 — Sanitización
+PENDIENTE
 
-FASE 4
-Testing + CI
-   ↓
-CHECKPOINT
+FASE 2.4 — PDF
+PENDIENTE
 
-FASE 5
-Refactor
-   ↓
-CHECKPOINT
+FASE 2.5 — Transacciones
+PENDIENTE
 
-FASE 6
-UX
-   ↓
-CHECKPOINT
+FASE 2.6 — Estados
+PENDIENTE
 
-FASE 7
-Administración
-   ↓
-CHECKPOINT
+FASE 2.7 — Auditoría
+PENDIENTE
 
-FASE 8
-PDF / documentación
-   ↓
-CHECKPOINT
+FASES 3–10
+PENDIENTES
 
-FASE 9
-Performance
-   ↓
-CHECKPOINT
+---
 
-FASE 10
-Features
-```
+# PRÓXIMO OBJETIVO
 
-Y cada checkpoint debería responder **sí/no** a:
+NO avanzar todavía a FASE 2.2.
 
-```text
-¿Funciona?
-¿Los tests pasan?
-¿Hay regresiones?
-¿La seguridad está cubierta?
-¿El código quedó mejor que antes?
-¿Podemos explicar el cambio en un commit?
-```
+Primero cerrar:
 
-## Regla de trabajo
+## FASE 2.1 — Reglas de negocio
 
-Para cada subtarea vamos a utilizar esta secuencia:
+Checklist inmediato:
 
-**1. Diagnóstico → 2. Comando PowerShell → 3. Cambio → 4. Test → 5. Git diff → 6. Commit → 7. Siguiente subtarea.**
+* [x] `validateSalida`
+* [x] estudiantes >= 1
+* [x] acompañantes >= ceil(estudiantes / 10)
+* [x] fecha regreso >= fecha salida
+* [x] hora regreso > hora salida si mismo día
+* [x] sin pernocte → mismo día
+* [x] con pernocte → alojamiento
+* [ ] salida local
+* [ ] casos límite
+* [ ] tests de tipos incorrectos
+* [ ] integración completa con API
+* [ ] Preview actualizado
+* [ ] suite completa verde
+* [ ] commit
+* [ ] push
+* [ ] checkpoint 2.1
 
-No voy a hacer una modificación masiva de 20 archivos y después decirte "listo". La idea es que podamos **entender y auditar cada cambio**.
-
-Y, dado el contexto que planteaste anteriormente, voy a aplicar un criterio bastante estricto: **si una solución es más compleja de lo necesario, no la incorporamos; si una decisión afecta seguridad o integridad de datos, primero la justificamos.**
-
-### Primer objetivo concreto
-
-Empezaría por **Fase 0.1 — establecer la línea base desde PowerShell**. Antes de modificar absolutamente nada, vamos a comprobar:
+Solo después:
 
 ```text
-Git
-Node
-npm
-GitHub CLI
-rama actual
-estado del working tree
-dependencias
-estructura
-variables de entorno
-tests existentes
+2.1 COMPLETADA
+        ↓
+2.2 VALIDACIÓN DE TIPOS
 ```
 
-Ese será nuestro **punto cero reproducible**.
+```
+
+Esta estructura te va a permitir trabajar literalmente **checkbox por checkbox**, y además cada subtarea tiene un resultado verificable. Sobre todo, evita que la Fase 2 se convierta en un bloque enorme de cambios mezclados: primero reglas, después tipos, después sanitización, etc.
+```
