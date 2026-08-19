@@ -34,6 +34,12 @@ function validateSalida(data = {}) {
         nombreAlojamiento
     } = data;
 
+    if (typeof sinPernocte !== 'boolean') {
+        errors.push(
+            'El campo sinPernocte debe ser booleano.'
+        );
+    }
+
     if (
         !Number.isInteger(cantEstudiantes) ||
         cantEstudiantes < 1
@@ -53,19 +59,27 @@ function validateSalida(data = {}) {
     }
 
     if (!isValidDate(fechaSalida)) {
-        errors.push('La fecha de salida no es válida.');
+        errors.push(
+            'La fecha de salida no es válida.'
+        );
     }
 
     if (!isValidDate(fechaRegreso)) {
-        errors.push('La fecha de regreso no es válida.');
+        errors.push(
+            'La fecha de regreso no es válida.'
+        );
     }
 
     if (!isValidTime(horaSalida)) {
-        errors.push('La hora de salida no es válida.');
+        errors.push(
+            'La hora de salida no es válida.'
+        );
     }
 
     if (!isValidTime(horaRegreso)) {
-        errors.push('La hora de regreso no es válida.');
+        errors.push(
+            'La hora de regreso no es válida.'
+        );
     }
 
     if (
@@ -78,7 +92,10 @@ function validateSalida(data = {}) {
             );
         }
 
-        if (sinPernocte && fechaRegreso !== fechaSalida) {
+        if (
+            sinPernocte === true &&
+            fechaRegreso !== fechaSalida
+        ) {
             errors.push(
                 'Una salida sin pernocte debe regresar el mismo día.'
             );
@@ -96,7 +113,10 @@ function validateSalida(data = {}) {
         }
     }
 
-    if (!sinPernocte) {
+    if (
+        typeof sinPernocte === 'boolean' &&
+        sinPernocte === false
+    ) {
         if (
             typeof nombreAlojamiento !== 'string' ||
             nombreAlojamiento.trim() === ''

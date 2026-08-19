@@ -1267,3 +1267,178 @@ test('42 - logout rechaza Origin externo', async () => {
     assert.equal(result.status, 403);
     assert.equal(result.body.error, 'Origen no permitido.');
 });
+/*
+ * ---------------------------------------------------------------------------
+ * 40 - VALIDACIÓN SERVER-SIDE / TIPOS
+ * ---------------------------------------------------------------------------
+ */
+
+test('40 - guardar salida rechaza destino de tipo incorrecto', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 123,
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 10,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+});
+
+test('41 - guardar salida rechaza lugar de salida de tipo incorrecto', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Destino',
+            lugarSalida: 123,
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 10,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+});
+
+test('42 - guardar salida rechaza lugar de regreso de tipo incorrecto', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Destino',
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 123,
+            cantEstudiantes: 10,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+});
+
+test('43 - guardar salida rechaza docente organizador de tipo incorrecto', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Destino',
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 10,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 123,
+            emailDocente: process.env.TEST_EMAIL_TO
+        })
+    });
+
+    assert.equal(result.status, 400);
+});
+
+test('44 - guardar salida rechaza email docente de tipo incorrecto', async () => {
+    const loginResult = await login(
+        USERS.docente.username,
+        USERS.docente.password
+    );
+
+    assert.equal(loginResult.status, 200);
+    assert.ok(loginResult.cookie);
+
+    const result = await request('/api/guardar-salida', {
+        method: 'POST',
+        headers: {
+            Cookie: loginResult.cookie
+        },
+        body: JSON.stringify({
+            destinoFinal: 'TEST - Destino',
+            lugarSalida: 'ENSAC',
+            lugarRegreso: 'ENSAC',
+            cantEstudiantes: 10,
+            cantAcompanantes: 1,
+            fechaSalida: '2099-12-01',
+            horaSalida: '08:00',
+            fechaRegreso: '2099-12-01',
+            horaRegreso: '18:00',
+            sinPernocte: true,
+            nombreAlojamiento: '',
+            docenteOrganizador: 'DOCENTE TEST',
+            emailDocente: 123
+        })
+    });
+
+    assert.equal(result.status, 400);
+});

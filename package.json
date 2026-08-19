@@ -5,7 +5,7 @@
     "check": "node scripts/check-syntax.js",
     "test": "npm run test:unit",
     "test:unit": "node --test tests/unit/*.test.js",
-    "test:integration:http": "node --test tests/integration/http.test.js"
+    "test:integration:http": "node --env-file=.env.test.local --test tests/integration/http.test.js"
   },
   "dependencies": {
     "@vercel/firewall": "^1.2.5",
@@ -13,4 +13,3 @@
     "nodemailer": "^9.0.3"
   }
 }
-

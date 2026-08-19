@@ -200,3 +200,36 @@ test('la salida local no requiere datos de país, provincia o ciudad', () => {
 
     assert.equal(result.valid, true);
 });
+
+test('sinPernocte debe ser booleano', () => {
+    const result = validateSalida(
+        salidaValida({
+            sinPernocte: 'true'
+        })
+    );
+
+    assert.equal(result.valid, false);
+});
+
+test('sinPernocte false booleano es válido con alojamiento', () => {
+    const result = validateSalida(
+        salidaValida({
+            sinPernocte: false,
+            fechaRegreso: '2026-09-11',
+            nombreAlojamiento: 'Hotel Test'
+        })
+    );
+
+    assert.equal(result.valid, true);
+});
+
+test('sinPernocte true booleano es válido sin alojamiento', () => {
+    const result = validateSalida(
+        salidaValida({
+            sinPernocte: true,
+            nombreAlojamiento: ''
+        })
+    );
+
+    assert.equal(result.valid, true);
+});
